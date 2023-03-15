@@ -1,6 +1,6 @@
 package main
 
-import "qiaomu"
+import "github.com/qingbo1011/qiaomu"
 
 func main() {
 	engine := qiaomu.New()
