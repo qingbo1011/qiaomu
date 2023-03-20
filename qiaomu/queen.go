@@ -1,20 +1,36 @@
 package qiaomu
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 )
 
+type HandleFunc func(w http.ResponseWriter, r *http.Request)
+
+type router struct {
+	handleFuncMap map[string]HandleFunc
+}
+
+func (r *router) Add(name string, handleFunc HandleFunc) {
+	r.handleFuncMap[name] = handleFunc
+}
+
 type Engine struct {
+	router
 }
 
 func New() *Engine {
-	return &Engine{}
+	return &Engine{
+		router{
+			handleFuncMap: make(map[string]HandleFunc),
+		},
+	}
 }
 
 func (e *Engine) Run() {
-	fmt.Println("8081端口运行中")
+	for key, value := range e.handleFuncMap {
+		http.HandleFunc(key, value)
+	}
 	err := http.ListenAndServe(":8081", nil)
 	if err != nil {
 		log.Fatalln(err)
