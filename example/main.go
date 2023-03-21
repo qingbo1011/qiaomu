@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-
 	"github.com/qingbo1011/qiaomu"
+	"net/http"
 )
 
 func main() {
 	engine := qiaomu.New()
-	engine.Add("/hello", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "qiaomu test")
+	group := engine.Group("user")
+	group.Add("/hello", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "hello,user")
 	})
 	engine.Run()
-	// test
 }
