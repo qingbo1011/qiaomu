@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -17,4 +18,10 @@ func TestConcatenatedString(t *testing.T) {
 			t.Errorf("got %q, want %q", ConcatenatedString(testcase.in), testcase.out)
 		}
 	}
+}
+
+func TestSubStringLast(t *testing.T) {
+	str := "/user/info/user"
+	substr := "/user"
+	fmt.Println(SubStringLast(str, substr))
 }

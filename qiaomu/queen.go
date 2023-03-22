@@ -99,6 +99,10 @@ func (r *routerGroup) handle(name string, method string, handlerFunc HandlerFunc
 	if !ok {
 		r.handlerMap[name] = make(map[string]HandlerFunc)
 	}
+	_, ok = r.handlerMap[name][method]
+	if ok {
+		panic("路由重复")
+	}
 	r.handlerMap[name][method] = handlerFunc
 	r.handlerMethodMap[method] = append(r.handlerMethodMap[method], name)
 }
@@ -140,13 +144,12 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusMethodNotAllowed)
 				fmt.Fprintln(w, utils.ConcatenatedString([]string{method, " not allowed"}))
 				return
-			} else { // url不匹配，404 NotFound
-				w.WriteHeader(http.StatusNotFound)
-				fmt.Fprintln(w, r.RequestURI+" not found")
-				return
 			}
 		}
 	}
+	// 遍历完还是没有匹配的url，404 NotFound
+	w.WriteHeader(http.StatusNotFound)
+	fmt.Fprintln(w, r.RequestURI+" not found")
 }
 
 func (e *Engine) Run() {

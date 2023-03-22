@@ -14,5 +14,8 @@ func main() {
 	group.Post("/hello", func(ctx *qiaomu.Context) {
 		fmt.Fprint(ctx.W, "Post,/hello")
 	})
+	group.Any("/info", func(ctx *qiaomu.Context) {
+		fmt.Fprint(ctx.W, "Any,/info")
+	})
 	engine.Run()
 }
