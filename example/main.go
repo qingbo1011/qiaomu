@@ -17,5 +17,15 @@ func main() {
 	group.Any("/info", func(ctx *qiaomu.Context) {
 		fmt.Fprint(ctx.W, "Any,/info")
 	})
+
+	group.Get("/getid/:id", func(ctx *qiaomu.Context) {
+		fmt.Fprint(ctx.W, "Get,/getid/:id")
+	})
+	group.Get("/blog/look", func(ctx *qiaomu.Context) {
+		fmt.Fprint(ctx.W, "Get,/blog/look")
+	})
+	group.Post("/log/*", func(ctx *qiaomu.Context) {
+		fmt.Fprint(ctx.W, "Post,/log/*")
+	})
 	engine.Run()
 }

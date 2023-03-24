@@ -27,6 +27,10 @@ func (r *router) Group(name string) *routerGroup {
 		groupName:        name,
 		handlerMap:       make(map[string]map[string]HandlerFunc),
 		handlerMethodMap: make(map[string][]string),
+		treeNode: &treeNode{
+			name:     "/",
+			children: make([]*treeNode, 0),
+		},
 	}
 	r.groups = append(r.groups, g)
 	return g
@@ -36,6 +40,7 @@ type routerGroup struct {
 	groupName        string
 	handlerMap       map[string]map[string]HandlerFunc
 	handlerMethodMap map[string][]string
+	treeNode         *treeNode
 }
 
 // Handle method的有效性校验
@@ -99,12 +104,11 @@ func (r *routerGroup) handle(name string, method string, handlerFunc HandlerFunc
 	if !ok {
 		r.handlerMap[name] = make(map[string]HandlerFunc)
 	}
-	_, ok = r.handlerMap[name][method]
-	if ok {
-		panic("路由重复")
-	}
 	r.handlerMap[name][method] = handlerFunc
 	r.handlerMethodMap[method] = append(r.handlerMethodMap[method], name)
+	methodMap := make(map[string]HandlerFunc)
+	methodMap[method] = handlerFunc
+	r.treeNode.Put(name)
 }
 
 type Engine struct {
@@ -118,38 +122,36 @@ func New() *Engine {
 }
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	groups := e.router.groups
-	for _, group := range groups {
-		for name, methodHandle := range group.handlerMap {
-			url := utils.ConcatenatedString([]string{"/", group.groupName, name})
-			if r.RequestURI == url { // url匹配
-				ctx := &Context{
-					W: w,
-					R: r,
-				}
-				// ANY下的匹配
-				handler, ok := methodHandle[MethodAny]
-				if ok {
-					handler(ctx)
-					return
-				}
-				// 指定Method的匹配（如Get，Post）
-				method := r.Method
-				handler, ok = methodHandle[method]
-				if ok {
-					handler(ctx)
-					return
-				}
-				// url匹配但请求方式不匹配，405 MethodNotAllowed
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				fmt.Fprintln(w, utils.ConcatenatedString([]string{method, " not allowed"}))
+	method := r.Method
+	for _, group := range e.router.groups {
+		routerName := utils.SubStringLast(r.RequestURI, utils.ConcatenatedString([]string{"/", group.groupName}))
+		node := group.treeNode.Get(routerName)
+		if node != nil && node.isEnd { // 路由匹配成功
+			ctx := &Context{
+				W: w,
+				R: r,
+			}
+			// ANY下的匹配
+			handler, ok := group.handlerMap[node.routerName][MethodAny]
+			if ok {
+				handler(ctx)
 				return
 			}
+			// 指定Method的匹配（如Get，Post）
+			handler, ok = group.handlerMap[node.routerName][method]
+			if ok {
+				handler(ctx)
+				return
+			}
+			// url匹配但请求方式不匹配，405 MethodNotAllowed
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			fmt.Fprintln(w, utils.ConcatenatedString([]string{method, " not allowed"}))
+			return
+		} else { // 路由匹配失败，404 NotFound
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintln(w, r.RequestURI+" not found")
 		}
 	}
-	// 遍历完还是没有匹配的url，404 NotFound
-	w.WriteHeader(http.StatusNotFound)
-	fmt.Fprintln(w, r.RequestURI+" not found")
 }
 
 func (e *Engine) Run() {
