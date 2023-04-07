@@ -119,13 +119,13 @@ func (r *routerGroup) handle(name string, method string, handlerFunc HandlerFunc
 }
 
 func (r *routerGroup) methodHandle(ctx *Context, name string, method string, handler HandlerFunc) {
-	//组通用中间件
+	// 路由组级中间件
 	if r.middlewares != nil {
 		for _, middlewareFunc := range r.middlewares {
 			handler = middlewareFunc(handler)
 		}
 	}
-	//组路由级别
+	// 路由级中间件
 	middlewareFuncs := r.middlewaresFuncMap[name][method]
 	if middlewareFuncs != nil {
 		for _, middlewareFunc := range middlewareFuncs {
