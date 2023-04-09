@@ -15,11 +15,6 @@ type HandlerFunc func(ctx *Context)
 
 type MiddlewareFunc func(handlerFunc HandlerFunc) HandlerFunc
 
-type Context struct {
-	W http.ResponseWriter
-	R *http.Request
-}
-
 type router struct {
 	groups []*routerGroup
 }

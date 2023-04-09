@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/qingbo1011/qiaomu"
+	"net/http"
 )
 
 // 路由测试
@@ -41,7 +42,7 @@ func Log(next qiaomu.HandlerFunc) qiaomu.HandlerFunc {
 }
 
 // 中间件测试
-func main() {
+/*func main() {
 	engine := qiaomu.New()
 	group := engine.Group("user")
 	// 具体路由使用中间件
@@ -64,6 +65,17 @@ func main() {
 	group2.Get("/info2", func(ctx *qiaomu.Context) {
 		fmt.Println("handler")
 		fmt.Fprint(ctx.W, "/info2 GET")
+	})
+
+	engine.Run()
+}*/
+
+// 页面渲染（模板支持）测试
+func main() {
+	engine := qiaomu.New()
+	group := engine.Group("user")
+	group.Get("/html", func(ctx *qiaomu.Context) {
+		ctx.HTML(http.StatusOK, "<h1>乔木")
 	})
 
 	engine.Run()
