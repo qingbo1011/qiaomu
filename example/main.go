@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/qingbo1011/qiaomu"
+	"log"
 	"net/http"
 )
 
@@ -76,6 +77,20 @@ func main() {
 	group := engine.Group("user")
 	group.Get("/html", func(ctx *qiaomu.Context) {
 		ctx.HTML(http.StatusOK, "<h1>乔木")
+	})
+	user := &struct {
+		Name string
+	}{
+		Name: "李四",
+	}
+	group.Get("/htmlTemplate", func(ctx *qiaomu.Context) {
+		err := ctx.HTMLTemplate("login.html", user, "template/login.html", "template/header.html")
+		if err != nil {
+			log.Println(err)
+		}
+	})
+	group.Get("/htmlTemplateGlob", func(ctx *qiaomu.Context) {
+		ctx.HTMLTemplateGlob("login.html", user, "template/*.html")
 	})
 
 	engine.Run()

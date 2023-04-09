@@ -2,6 +2,7 @@ package qiaomu
 
 import (
 	"github.com/qingbo1011/qiaomu/render"
+	"html/template"
 	"net/http"
 )
 
@@ -19,6 +20,31 @@ func (c *Context) Render(statusCode int, r render.Render) error {
 	return err
 }
 
+// HTML HTML页面渲染
 func (c *Context) HTML(status int, html string) error {
 	return c.Render(status, &render.HTML{Data: html, IsTemplate: false})
+}
+
+// HTMLTemplate HTML页面渲染：模板支持
+func (c *Context) HTMLTemplate(name string, data any, filenames ...string) error {
+	c.W.Header().Set("Content-Type", "text/html; charset=utf-8")
+	t := template.New(name)
+	t, err := t.ParseFiles(filenames...)
+	if err != nil {
+		return err
+	}
+	err = t.Execute(c.W, data)
+	return err
+}
+
+// HTMLTemplateGlob 通过go html/template包自带的ParseGlob方法，实现filename的匹配模式
+func (c *Context) HTMLTemplateGlob(name string, data any, pattern string) error {
+	c.W.Header().Set("Content-Type", "text/html; charset=utf-8")
+	t := template.New(name)
+	t, err := t.ParseGlob(pattern)
+	if err != nil {
+		return err
+	}
+	err = t.Execute(c.W, data)
+	return err
 }
