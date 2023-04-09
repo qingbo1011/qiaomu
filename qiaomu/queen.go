@@ -2,7 +2,9 @@ package qiaomu
 
 import (
 	"fmt"
+	"github.com/qingbo1011/qiaomu/render"
 	"github.com/qingbo1011/qiaomu/utils"
+	"html/template"
 	"log"
 	"net/http"
 )
@@ -113,6 +115,7 @@ func (r *routerGroup) handle(name string, method string, handlerFunc HandlerFunc
 	r.treeNode.Put(name)
 }
 
+// 路由实现引入中间件
 func (r *routerGroup) methodHandle(ctx *Context, name string, method string, handler HandlerFunc) {
 	// 路由组级中间件
 	if r.middlewares != nil {
@@ -138,6 +141,8 @@ func (r *routerGroup) Use(middlewareFunc ...MiddlewareFunc) {
 
 type Engine struct {
 	*router
+	funcMap    template.FuncMap
+	HTMLRender render.HTMLRender
 }
 
 func New() *Engine {
@@ -157,8 +162,9 @@ func (e *Engine) httpRequestHandle(w http.ResponseWriter, r *http.Request) {
 		node := group.treeNode.Get(routerName)
 		if node != nil && node.isEnd { // 路由匹配成功
 			ctx := &Context{
-				W: w,
-				R: r,
+				W:      w,
+				R:      r,
+				engine: e,
 			}
 			// ANY下的匹配
 			handler, ok := group.handlerMap[node.routerName][MethodAny]
@@ -181,6 +187,21 @@ func (e *Engine) httpRequestHandle(w http.ResponseWriter, r *http.Request) {
 	// 路由匹配失败，404 NotFound
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprintln(w, r.RequestURI+" not found")
+}
+
+func (e *Engine) SetFuncMap(funcMap template.FuncMap) {
+	e.funcMap = funcMap
+}
+
+// LoadTemplate 加载模板
+func (e *Engine) LoadTemplate(pattern string) {
+	t := template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
+	e.SetHtmlTemplate(t)
+}
+
+// SetHtmlTemplate 加载HTML模板
+func (e *Engine) SetHtmlTemplate(t *template.Template) {
+	e.HTMLRender = render.HTMLRender{Template: t}
 }
 
 func (e *Engine) Run() {

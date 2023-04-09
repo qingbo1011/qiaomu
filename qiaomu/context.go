@@ -10,6 +10,7 @@ type Context struct {
 	W          http.ResponseWriter
 	R          *http.Request
 	StatusCode int
+	engine     *Engine
 }
 
 func (c *Context) Render(statusCode int, r render.Render) error {
@@ -47,4 +48,14 @@ func (c *Context) HTMLTemplateGlob(name string, data any, pattern string) error 
 	}
 	err = t.Execute(c.W, data)
 	return err
+}
+
+// Template 加载模板
+func (c *Context) Template(name string, data any) error {
+	return c.Render(http.StatusOK, &render.HTML{
+		Data:       data,
+		IsTemplate: true,
+		Template:   c.engine.HTMLRender.Template,
+		Name:       name,
+	})
 }

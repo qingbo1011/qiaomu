@@ -93,5 +93,10 @@ func main() {
 		ctx.HTMLTemplateGlob("login.html", user, "template/*.html")
 	})
 
+	engine.LoadTemplate("template/*.html")
+	group.Get("/template", func(ctx *qiaomu.Context) {
+		ctx.Template("login.html", user)
+	})
+
 	engine.Run()
 }
