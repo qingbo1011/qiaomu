@@ -104,3 +104,8 @@ func (c *Context) Redirect(status int, url string) error {
 		Location: url,
 	})
 }
+
+// String 渲染String字符串
+func (c *Context) String(status int, format string, values ...any) error {
+	return c.Render(status, &render.String{Format: format, Data: values})
+}

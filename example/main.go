@@ -119,6 +119,12 @@ func main() {
 	group.Get("/fs", func(ctx *qiaomu.Context) {
 		ctx.FileFromFS("file_test.csv", http.Dir("template"))
 	})
+	group.Get("/redirect", func(ctx *qiaomu.Context) {
+		ctx.Redirect(http.StatusFound, "/user/html")
+	})
+	group.Get("/string", func(ctx *qiaomu.Context) {
+		ctx.String(http.StatusFound, "%s是一个%s web框架", "qiaomu", "go的")
+	})
 
 	engine.Run()
 }
