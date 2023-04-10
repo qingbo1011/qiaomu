@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/qingbo1011/qiaomu"
-	"log"
-	"net/http"
 )
 
 // 路由测试
@@ -77,7 +75,7 @@ type User struct {
 }
 
 // 页面渲染（模板支持）测试
-func main() {
+/*func main() {
 	engine := qiaomu.New()
 	group := engine.Group("user")
 	group.Get("/html", func(ctx *qiaomu.Context) {
@@ -127,4 +125,9 @@ func main() {
 	})
 
 	engine.Run()
+}*/
+
+// 参数处理测试
+func main() {
+
 }

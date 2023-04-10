@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"sync"
 )
 
 const (
@@ -140,32 +141,41 @@ func (r *routerGroup) Use(middlewareFunc ...MiddlewareFunc) {
 }
 
 type Engine struct {
-	*router
+	router
 	funcMap    template.FuncMap
 	HTMLRender render.HTMLRender
+	pool       sync.Pool
 }
 
 func New() *Engine {
-	return &Engine{
-		router: &router{},
+	engine := &Engine{
+		router: router{},
 	}
+	engine.pool.New = func() any {
+		return engine.allocateContext()
+	}
+	return engine
+}
+
+// 仿照gin框架源码作的处理
+func (e *Engine) allocateContext() any {
+	return &Context{engine: e}
 }
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	e.httpRequestHandle(w, r)
+	ctx := e.pool.Get().(*Context)
+	ctx.W = w
+	ctx.R = r
+	e.httpRequestHandle(ctx, w, r)
+	e.pool.Put(ctx)
 }
 
-func (e *Engine) httpRequestHandle(w http.ResponseWriter, r *http.Request) {
+func (e *Engine) httpRequestHandle(ctx *Context, w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	for _, group := range e.router.groups {
 		routerName := utils.SubStringLast(r.RequestURI, utils.ConcatenatedString([]string{"/", group.groupName}))
 		node := group.treeNode.Get(routerName)
 		if node != nil && node.isEnd { // 路由匹配成功
-			ctx := &Context{
-				W:      w,
-				R:      r,
-				engine: e,
-			}
 			// ANY下的匹配
 			handler, ok := group.handlerMap[node.routerName][MethodAny]
 			if ok {
