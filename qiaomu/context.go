@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Context struct {
@@ -143,4 +144,29 @@ func (c *Context) initQueryCache() {
 	} else {
 		c.queryCache = url.Values{}
 	}
+}
+
+func (c *Context) QueryMap(key string) (dicts map[string]string) {
+	dicts, _ = c.GetQueryMap(key)
+	return
+}
+
+func (c *Context) GetQueryMap(key string) (map[string]string, bool) {
+	c.initQueryCache()
+	return c.get(c.queryCache, key)
+}
+
+func (c *Context) get(cache map[string][]string, key string) (map[string]string, bool) {
+	dicts := make(map[string]string)
+	exist := false
+	//user[id]=1&user[name]=张三
+	for k, value := range cache {
+		if i := strings.IndexByte(k, '['); i >= 1 && k[0:i] == key {
+			if j := strings.IndexByte(k[i+1:], ']'); j >= 1 {
+				exist = true
+				dicts[k[i+1:][:j]] = value[0]
+			}
+		}
+	}
+	return dicts, exist
 }
