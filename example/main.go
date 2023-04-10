@@ -110,6 +110,15 @@ func main() {
 			log.Println(err)
 		}
 	})
+	group.Get("/csv", func(ctx *qiaomu.Context) {
+		ctx.File("template/file_test.csv")
+	})
+	group.Get("/csvname", func(ctx *qiaomu.Context) {
+		ctx.FileAttachment("template/file_test.csv", "queen.csv")
+	})
+	group.Get("/fs", func(ctx *qiaomu.Context) {
+		ctx.FileFromFS("file_test.csv", http.Dir("template"))
+	})
 
 	engine.Run()
 }
