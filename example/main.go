@@ -71,6 +71,11 @@ func Log(next qiaomu.HandlerFunc) qiaomu.HandlerFunc {
 	engine.Run()
 }*/
 
+type User struct {
+	Name string `xml:"name"`
+	Age  int    `xml:"age"`
+}
+
 // 页面渲染（模板支持）测试
 func main() {
 	engine := qiaomu.New()
@@ -78,10 +83,9 @@ func main() {
 	group.Get("/html", func(ctx *qiaomu.Context) {
 		ctx.HTML(http.StatusOK, "<h1>乔木")
 	})
-	user := &struct {
-		Name string
-	}{
+	user := &User{
 		Name: "李四",
+		Age:  18,
 	}
 	group.Get("/htmlTemplate", func(ctx *qiaomu.Context) {
 		err := ctx.HTMLTemplate("login.html", user, "template/login.html", "template/header.html")
@@ -99,6 +103,12 @@ func main() {
 	})
 	group.Get("/json", func(ctx *qiaomu.Context) {
 		ctx.JSON(http.StatusOK, user)
+	})
+	group.Get("/xml", func(ctx *qiaomu.Context) {
+		err := ctx.XML(http.StatusOK, user)
+		if err != nil {
+			log.Println(err)
+		}
 	})
 
 	engine.Run()
