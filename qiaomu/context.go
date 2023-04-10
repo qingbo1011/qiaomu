@@ -5,9 +5,12 @@ import (
 	"github.com/qingbo1011/qiaomu/render"
 	"github.com/qingbo1011/qiaomu/utils"
 	"html/template"
+	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -22,7 +25,7 @@ type Context struct {
 	queryCache url.Values
 }
 
-// Render 统一处理
+// Render 渲染统一处理
 func (c *Context) Render(statusCode int, r render.Render) error {
 	// 如果设置了statusCode，对header的修改就不生效了
 	err := r.Render(c.W, statusCode)
@@ -215,4 +218,43 @@ func (c *Context) PostFormMap(key string) (dicts map[string]string) {
 func (c *Context) GetPostFormMap(key string) (map[string]string, bool) {
 	c.initPostFormCache()
 	return c.get(c.formCache, key)
+}
+
+func (c *Context) FormFile(name string) *multipart.FileHeader {
+	file, header, err := c.R.FormFile(name)
+	if err != nil {
+		log.Println(err)
+	}
+	defer file.Close()
+	return header
+}
+
+func (c *Context) FormFiles(name string) []*multipart.FileHeader {
+	multipartForm, err := c.MultipartForm()
+	if err != nil {
+		return make([]*multipart.FileHeader, 0)
+	}
+	return multipartForm.File[name]
+}
+
+func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string) error {
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, src)
+	return err
+}
+
+func (c *Context) MultipartForm() (*multipart.Form, error) {
+	err := c.R.ParseMultipartForm(defaultMultipartMemory)
+	return c.R.MultipartForm, err
 }
