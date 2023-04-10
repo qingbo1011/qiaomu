@@ -16,10 +16,10 @@ type Context struct {
 }
 
 func (c *Context) Render(statusCode int, r render.Render) error {
-	//如果设置了statusCode，对header的修改就不生效了
+	// 如果设置了statusCode，对header的修改就不生效了
 	err := r.Render(c.W, statusCode)
 	c.StatusCode = statusCode
-	//多次调用WriteHeader会产生这样的警告 superfluous response.WriteHeader
+	// 多次调用WriteHeader会产生这样的警告 superfluous response.WriteHeader
 	return err
 }
 
@@ -94,4 +94,13 @@ func (c *Context) FileFromFS(filepath string, fs http.FileSystem) {
 	}(c.R.URL.Path)
 	c.R.URL.Path = filepath
 	http.FileServer(fs).ServeHTTP(c.W, c.R)
+}
+
+// Redirect 重定向
+func (c *Context) Redirect(status int, url string) error {
+	return c.Render(status, &render.Redirect{
+		Code:     status,
+		Request:  c.R,
+		Location: url,
+	})
 }
