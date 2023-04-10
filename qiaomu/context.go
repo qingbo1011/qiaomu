@@ -13,6 +13,7 @@ type Context struct {
 	R          *http.Request
 	StatusCode int
 	engine     *Engine
+	queryCache url.Values
 }
 
 // Render 统一处理
@@ -109,4 +110,37 @@ func (c *Context) Redirect(status int, url string) error {
 // String 渲染String字符串
 func (c *Context) String(status int, format string, values ...any) error {
 	return c.Render(status, &render.String{Format: format, Data: values})
+}
+
+func (c *Context) GetDefaultQuery(key, defaultValue string) string {
+	values, ok := c.GetQueryArray(key)
+	if !ok {
+		return defaultValue
+	}
+	return values[0]
+}
+
+func (c *Context) GetQuery(key string) string {
+	c.initQueryCache()
+	return c.queryCache.Get(key)
+}
+
+func (c *Context) QueryArray(key string) (values []string) {
+	c.initQueryCache()
+	values, _ = c.queryCache[key]
+	return
+}
+
+func (c *Context) GetQueryArray(key string) ([]string, bool) {
+	c.initQueryCache()
+	values, ok := c.queryCache[key]
+	return values, ok
+}
+
+func (c *Context) initQueryCache() {
+	if c.R != nil {
+		c.queryCache = c.R.URL.Query()
+	} else {
+		c.queryCache = url.Values{}
+	}
 }
