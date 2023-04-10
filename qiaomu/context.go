@@ -1,19 +1,24 @@
 package qiaomu
 
 import (
+	"errors"
 	"github.com/qingbo1011/qiaomu/render"
 	"github.com/qingbo1011/qiaomu/utils"
 	"html/template"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
 )
+
+const defaultMultipartMemory = 32 << 20 //32M
 
 type Context struct {
 	W          http.ResponseWriter
 	R          *http.Request
 	StatusCode int
 	engine     *Engine
+	formCache  url.Values
 	queryCache url.Values
 }
 
@@ -169,4 +174,45 @@ func (c *Context) get(cache map[string][]string, key string) (map[string]string,
 		}
 	}
 	return dicts, exist
+}
+
+func (c *Context) initPostFormCache() {
+	if c.R != nil {
+		if err := c.R.ParseMultipartForm(defaultMultipartMemory); err != nil {
+			if !errors.Is(err, http.ErrNotMultipart) {
+				log.Println(err)
+			}
+		}
+		c.formCache = c.R.PostForm
+	} else {
+		c.formCache = url.Values{}
+	}
+}
+
+func (c *Context) GetPostForm(key string) (string, bool) {
+	if values, ok := c.GetPostFormArray(key); ok {
+		return values[0], ok
+	}
+	return "", false
+}
+
+func (c *Context) PostFormArray(key string) (values []string) {
+	values, _ = c.GetPostFormArray(key)
+	return
+}
+
+func (c *Context) GetPostFormArray(key string) ([]string, bool) {
+	c.initPostFormCache()
+	values, ok := c.formCache[key]
+	return values, ok
+}
+
+func (c *Context) PostFormMap(key string) (dicts map[string]string) {
+	dicts, _ = c.GetPostFormMap(key)
+	return
+}
+
+func (c *Context) GetPostFormMap(key string) (map[string]string, bool) {
+	c.initPostFormCache()
+	return c.get(c.formCache, key)
 }
