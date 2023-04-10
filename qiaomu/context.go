@@ -59,3 +59,8 @@ func (c *Context) Template(name string, data any) error {
 		Name:       name,
 	})
 }
+
+// JSON 渲染JSON数据
+func (c *Context) JSON(status int, data any) error {
+	return c.Render(status, &render.JSON{Data: data})
+}

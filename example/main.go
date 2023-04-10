@@ -97,6 +97,9 @@ func main() {
 	group.Get("/template", func(ctx *qiaomu.Context) {
 		ctx.Template("login.html", user)
 	})
+	group.Get("/json", func(ctx *qiaomu.Context) {
+		ctx.JSON(http.StatusOK, user)
+	})
 
 	engine.Run()
 }
