@@ -15,6 +15,7 @@ type Context struct {
 	engine     *Engine
 }
 
+// Render 统一处理
 func (c *Context) Render(statusCode int, r render.Render) error {
 	// 如果设置了statusCode，对header的修改就不生效了
 	err := r.Render(c.W, statusCode)
