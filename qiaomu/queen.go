@@ -2,12 +2,13 @@ package qiaomu
 
 import (
 	"fmt"
-	"github.com/qingbo1011/qiaomu/render"
-	"github.com/qingbo1011/qiaomu/utils"
 	"html/template"
 	"log"
 	"net/http"
 	"sync"
+
+	"github.com/qingbo1011/qiaomu/render"
+	"github.com/qingbo1011/qiaomu/utils"
 )
 
 const (
@@ -173,7 +174,7 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (e *Engine) httpRequestHandle(ctx *Context, w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	for _, group := range e.router.groups {
-		routerName := utils.SubStringLast(r.RequestURI, utils.ConcatenatedString([]string{"/", group.groupName}))
+		routerName := utils.SubStringLast(r.URL.Path, utils.ConcatenatedString([]string{"/", group.groupName}))
 		node := group.treeNode.Get(routerName)
 		if node != nil && node.isEnd { // 路由匹配成功
 			// ANY下的匹配

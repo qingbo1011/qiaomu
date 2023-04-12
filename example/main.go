@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/qingbo1011/qiaomu"
 )
 
@@ -129,5 +131,32 @@ type User struct {
 
 // 参数处理测试
 func main() {
+	engine := qiaomu.New()
+	group := engine.Group("user")
 
+	group.Get("/add", func(ctx *qiaomu.Context) {
+		name := ctx.GetQuery("name")
+		fmt.Printf("name: %v , ok: %v \n", name, true)
+	})
+	group.Get("/adds", func(ctx *qiaomu.Context) {
+		querys, ok := ctx.GetQueryArray("id")
+		fmt.Println("参数切片: ", querys, " , ok: ", ok)
+	})
+	group.Get("/default", func(ctx *qiaomu.Context) {
+		name := ctx.GetDefaultQuery("name", "张三")
+		fmt.Printf("name: %v , ok: %v \n", name, true)
+	})
+	group.Get("/queryMap", func(ctx *qiaomu.Context) {
+		m, _ := ctx.GetQueryMap("user")
+		ctx.JSON(http.StatusOK, m)
+	})
+	group.Post("/formPost", func(ctx *qiaomu.Context) {
+		m, _ := ctx.GetPostFormMap("user")
+		files := ctx.FormFiles("file")
+		for _, file := range files {
+			ctx.SaveUploadedFile(file, "./upload/"+file.Filename)
+		}
+		ctx.JSON(http.StatusOK, m)
+	})
+	engine.Run()
 }
