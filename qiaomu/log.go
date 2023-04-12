@@ -51,6 +51,20 @@ type LogFormatterParams struct {
 	IsDisplayColor bool
 }
 
+func (p *LogFormatterParams) StatusCodeColor() string {
+	code := p.StatusCode
+	switch code {
+	case http.StatusOK:
+		return green
+	default:
+		return red
+	}
+}
+
+func (p *LogFormatterParams) ResetColor() string {
+	return reset
+}
+
 var defaultFormatter = func(params *LogFormatterParams) string {
 	var statusCodeColor = params.StatusCodeColor()
 	var resetColor = params.ResetColor()
