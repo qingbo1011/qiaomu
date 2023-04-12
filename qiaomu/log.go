@@ -115,7 +115,6 @@ func LoggingWithConfig(conf LoggingConfig, next HandlerFunc) HandlerFunc {
 		param.Path = path
 		param.ClientIP = clientIP
 		param.Method = method
-
 		fmt.Fprint(out, formatter(param))
 	}
 }
