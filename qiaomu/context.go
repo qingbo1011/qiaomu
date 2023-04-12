@@ -281,6 +281,7 @@ func (c *Context) MultipartForm() (*multipart.Form, error) {
 	return c.R.MultipartForm, err
 }
 
+// BindJson 指定处理JSON参数
 func (c *Context) BindJson(obj any) error {
 	json := bind.JSON
 	json.DisallowUnknownFields = true
@@ -288,10 +289,12 @@ func (c *Context) BindJson(obj any) error {
 	return c.MustBindWith(obj, json)
 }
 
+// BindXML 指定处理XML参数
 func (c *Context) BindXML(obj any) error {
 	return c.MustBindWith(obj, bind.XML)
 }
 
+// MustBindWith 如果绑定出现错误，终止请求并返回400状态码
 func (c *Context) MustBindWith(obj any, bind bind.Binding) error {
 	if err := c.ShouldBind(obj, bind); err != nil {
 		c.W.WriteHeader(http.StatusBadRequest)
@@ -300,6 +303,7 @@ func (c *Context) MustBindWith(obj any, bind bind.Binding) error {
 	return nil
 }
 
+// ShouldBind 如果绑定出现错误，返回错误并由开发者自行处理错误和请求
 func (c *Context) ShouldBind(obj any, bind bind.Binding) error {
 	return bind.Bind(c.R, obj)
 }

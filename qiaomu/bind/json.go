@@ -74,7 +74,7 @@ func checkParamSlice(of reflect.Type, obj any, decoder *json.Decoder) error {
 		if jsonName != "" {
 			name = jsonName
 		}
-		required := field.Tag.Get("qiaomu")
+		required := field.Tag.Get("queen")
 		for _, v := range mapValue {
 			value := v[name]
 			if value == nil && required == "required" {

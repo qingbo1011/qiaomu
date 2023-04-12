@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/qingbo1011/qiaomu"
 )
@@ -72,8 +71,10 @@ func Log(next qiaomu.HandlerFunc) qiaomu.HandlerFunc {
 }*/
 
 type User struct {
-	Name string `xml:"name"`
-	Age  int    `xml:"age"`
+	Name      string   `xml:"name" json:"name"`
+	Age       int      `xml:"age" json:"age" validate:"required,max=50,min=18"`
+	Addresses []string `json:"addresses"`
+	Email     string   `json:"email"`
 }
 
 // 页面渲染（模板支持）测试
@@ -130,7 +131,7 @@ type User struct {
 }*/
 
 // 参数处理测试
-func main() {
+/*func main() {
 	engine := qiaomu.New()
 	group := engine.Group("user")
 
@@ -158,5 +159,32 @@ func main() {
 		}
 		ctx.JSON(http.StatusOK, m)
 	})
+	group.Post("/jsonParam", func(ctx *qiaomu.Context) {
+		user := User{}
+		ctx.DisallowUnknownFields = true
+		//ctx.IsValidate = true
+		err := ctx.ShouldBind(&user, bind.JSON)
+		if err == nil {
+			ctx.JSON(http.StatusOK, user)
+		} else {
+			log.Println(err)
+		}
+	})
+	group.Post("/xmlParam", func(ctx *qiaomu.Context) {
+		user := User{}
+		ctx.DisallowUnknownFields = true
+		//ctx.IsValidate = true
+		err := ctx.BindXML(&user)
+		if err == nil {
+			ctx.JSON(http.StatusOK, user)
+		} else {
+			log.Println(err)
+		}
+	})
 	engine.Run()
+}*/
+
+// 日志处理测试
+func main() {
+
 }
