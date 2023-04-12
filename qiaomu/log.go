@@ -51,11 +51,36 @@ type LogFormatterParams struct {
 	IsDisplayColor bool
 }
 
+var defaultFormatter = func(params *LogFormatterParams) string {
+	var statusCodeColor = params.StatusCodeColor()
+	var resetColor = params.ResetColor()
+	if params.Latency > time.Minute {
+		params.Latency = params.Latency.Truncate(time.Second)
+	}
+	if params.IsDisplayColor {
+		return fmt.Sprintf("%s [msgo] %s |%s %v %s| %s %3d %s |%s %13v %s| %15s  |%s %-7s %s %s %#v %s \n",
+			yellow, resetColor, blue, params.TimeStamp.Format("2006/01/02 - 15:04:05"), resetColor,
+			statusCodeColor, params.StatusCode, resetColor,
+			red, params.Latency, resetColor,
+			params.ClientIP,
+			magenta, params.Method, resetColor,
+			cyan, params.Path, resetColor,
+		)
+	}
+	return fmt.Sprintf("[msgo] %v | %3d | %13v | %15s |%-7s %#v",
+		params.TimeStamp.Format("2006/01/02 - 15:04:05"),
+		params.StatusCode,
+		params.Latency, params.ClientIP, params.Method, params.Path,
+	)
+
+}
+
+// LoggingWithConfig 日志中间件
 func LoggingWithConfig(conf LoggingConfig, next HandlerFunc) HandlerFunc {
 	formatter := conf.Formatter
-	//if formatter == nil {
-	//	formatter = defaultFormatter
-	//}
+	if formatter == nil {
+		formatter = defaultFormatter
+	}
 	out := conf.out
 	displayColor := false
 	if out == nil {
