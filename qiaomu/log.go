@@ -118,3 +118,7 @@ func LoggingWithConfig(conf LoggingConfig, next HandlerFunc) HandlerFunc {
 		fmt.Fprint(out, formatter(param))
 	}
 }
+
+func Logging(next HandlerFunc) HandlerFunc {
+	return LoggingWithConfig(LoggingConfig{}, next)
+}
