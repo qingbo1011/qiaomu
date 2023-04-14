@@ -309,3 +309,8 @@ func (c *Context) MustBindWith(obj any, bind bind.Binding) error {
 func (c *Context) ShouldBind(obj any, bind bind.Binding) error {
 	return bind.Bind(c.R, obj)
 }
+
+// Fail
+func (c *Context) Fail(code int, msg string) {
+	c.String(code, msg)
+}
