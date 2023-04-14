@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+
+	"github.com/qingbo1011/qiaomu/qerror"
 )
 
 func Recovery(next HandlerFunc) HandlerFunc {
@@ -14,7 +16,7 @@ func Recovery(next HandlerFunc) HandlerFunc {
 			if err := recover(); err != nil {
 				err2 := err.(error)
 				if err2 != nil {
-					var msError *mserror.MsError
+					var msError *qerror.QError
 					if errors.As(err2, &msError) {
 						msError.ExecResult()
 						return
