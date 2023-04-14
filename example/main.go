@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/qingbo1011/qiaomu"
+	"github.com/qingbo1011/qiaomu/bind"
 )
 
 // 路由测试
@@ -77,7 +80,7 @@ type User struct {
 	Email     string   `json:"email"`
 }
 
-// 页面渲染（模板支持）测试
+// 页面渲染(模板支持)测试
 /*func main() {
 	engine := qiaomu.New()
 	group := engine.Group("user")
@@ -185,6 +188,52 @@ type User struct {
 }*/
 
 // 日志处理测试
+/*func main() {
+	engine := qiaomu.New()
+	//engine.Logger = qlog.New()
+	//engine.Logger.Level = qlog.LevelDebug // 设置日志级别
+	group := engine.Group("user")
+	//group.Use(qiaomu.Logging)	// 注册中间件方式
+	group.Post("/jsonParam", func(ctx *qiaomu.Context) {
+		user := User{}
+		ctx.DisallowUnknownFields = true
+		ctx.Logger = qlog.Default()
+		ctx.Logger.Level = qlog.LevelDebug                            // 设置日志级别
+		ctx.Logger.Formatter = &qlog.JsonFormatter{TimeDisplay: true} // JSON格式
+		ctx.Logger.SetLogPath("./log")                                // 日志持久化存储一般使用JSON格式
+		//ctx.IsValidate = true
+		ctx.Logger.WithFields(qlog.Fields{
+			"name": "qiaomu",
+			"id":   1000,
+		}).Debug("debug日志")
+		ctx.Logger.Info("info日志")
+		ctx.Logger.Error("error日志")
+		err := ctx.ShouldBind(&user, bind.JSON)
+		if err == nil {
+			ctx.JSON(http.StatusOK, user)
+		} else {
+			log.Println(err)
+		}
+	})
+	engine.Run()
+
+}*/
+
+// 错误处理测试
 func main() {
+	engine := qiaomu.New()
+	group := engine.Group("user")
+	group.Post("/jsonParam", func(ctx *qiaomu.Context) {
+		user := User{}
+		ctx.DisallowUnknownFields = true
+		//ctx.IsValidate = true
+		err := ctx.ShouldBind(&user, bind.JSON)
+		if err == nil {
+			ctx.JSON(http.StatusOK, user)
+		} else {
+			log.Println(err)
+		}
+	})
+	engine.Run()
 
 }

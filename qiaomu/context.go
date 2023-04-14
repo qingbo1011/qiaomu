@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/qingbo1011/qiaomu/bind"
+	qlog "github.com/qingbo1011/qiaomu/log"
 	"github.com/qingbo1011/qiaomu/render"
 	"github.com/qingbo1011/qiaomu/utils"
 )
@@ -27,6 +28,7 @@ type Context struct {
 	formCache             url.Values
 	DisallowUnknownFields bool
 	IsValidate            bool
+	Logger                *qlog.Logger
 }
 
 // Render 渲染统一处理

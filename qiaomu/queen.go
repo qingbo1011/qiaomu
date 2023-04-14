@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	qlog "github.com/qingbo1011/qiaomu/log"
 	"github.com/qingbo1011/qiaomu/render"
 	"github.com/qingbo1011/qiaomu/utils"
 )
@@ -146,6 +147,7 @@ type Engine struct {
 	funcMap    template.FuncMap
 	HTMLRender render.HTMLRender
 	pool       sync.Pool
+	Logger     *qlog.Logger
 }
 
 func New() *Engine {

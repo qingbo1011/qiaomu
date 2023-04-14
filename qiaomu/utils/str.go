@@ -1,6 +1,10 @@
 package utils
 
-import "strings"
+import (
+	"fmt"
+	"reflect"
+	"strings"
+)
 
 // ConcatenatedString 高性能拼接字符串
 func ConcatenatedString(s []string) string {
@@ -18,4 +22,22 @@ func SubStringLast(str string, substr string) string {
 		return ""
 	}
 	return str[index+len(substr):]
+}
+
+func JoinStrings(data ...any) string {
+	var sb strings.Builder
+	for _, v := range data {
+		sb.WriteString(check(v))
+	}
+	return sb.String()
+}
+
+func check(v any) string {
+	value := reflect.ValueOf(v)
+	switch value.Kind() {
+	case reflect.String:
+		return v.(string)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
