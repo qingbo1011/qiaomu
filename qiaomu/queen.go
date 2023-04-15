@@ -22,6 +22,7 @@ type MiddlewareFunc func(handlerFunc HandlerFunc) HandlerFunc
 
 type router struct {
 	groups []*routerGroup
+	engine *Engine
 }
 
 func (r *router) Group(name string) *routerGroup {
@@ -35,6 +36,7 @@ func (r *router) Group(name string) *routerGroup {
 		},
 		middlewaresFuncMap: make(map[string]map[string][]MiddlewareFunc),
 	}
+	g.Use(r.engine.middles...)
 	r.groups = append(r.groups, g)
 	return g
 }
@@ -142,12 +144,16 @@ func (r *routerGroup) Use(middlewareFunc ...MiddlewareFunc) {
 	r.middlewares = append(r.middlewares, middlewareFunc...)
 }
 
+type ErrorHandler func(err error) (int, any)
+
 type Engine struct {
 	router
-	funcMap    template.FuncMap
-	HTMLRender render.HTMLRender
-	pool       sync.Pool
-	Logger     *qlog.Logger
+	funcMap      template.FuncMap
+	HTMLRender   render.HTMLRender
+	pool         sync.Pool
+	Logger       *qlog.Logger
+	middles      []MiddlewareFunc
+	errorHandler ErrorHandler
 }
 
 func New() *Engine {
@@ -160,6 +166,23 @@ func New() *Engine {
 	return engine
 }
 
+// Default 创建出来的engine自动注册日志中间件和错误处理中间件
+func Default() *Engine {
+	engine := New()
+	engine.Logger = qlog.Default()
+	//logPath, ok := config.Conf.Log["path"]
+	//if ok {
+	//	engine.Logger.SetLogPath(logPath.(string))
+	//}
+	engine.Use(Logging, Recovery)
+	engine.router.engine = engine
+	return engine
+}
+
+func (e *Engine) Use(middles ...MiddlewareFunc) {
+	e.middles = append(e.middles, middles...)
+}
+
 // 仿照gin框架源码作的处理
 func (e *Engine) allocateContext() any {
 	return &Context{engine: e}
@@ -169,6 +192,7 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := e.pool.Get().(*Context)
 	ctx.W = w
 	ctx.R = r
+	ctx.Logger = e.Logger
 	e.httpRequestHandle(ctx, w, r)
 	e.pool.Put(ctx)
 }
@@ -215,6 +239,11 @@ func (e *Engine) LoadTemplate(pattern string) {
 // SetHtmlTemplate 加载HTML模板
 func (e *Engine) SetHtmlTemplate(t *template.Template) {
 	e.HTMLRender = render.HTMLRender{Template: t}
+}
+
+// RegisterErrorHandler 注册errorHandler
+func (e *Engine) RegisterErrorHandler(handler ErrorHandler) {
+	e.errorHandler = handler
 }
 
 func (e *Engine) Run() {

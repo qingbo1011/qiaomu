@@ -7,6 +7,7 @@ import (
 
 	"github.com/qingbo1011/qiaomu"
 	"github.com/qingbo1011/qiaomu/bind"
+	qlog "github.com/qingbo1011/qiaomu/log"
 )
 
 // 路由测试
@@ -221,12 +222,29 @@ type User struct {
 
 // 错误处理测试
 func main() {
-	engine := qiaomu.New()
+	engine := qiaomu.Default()
+	//engine.RegisterErrorHandler(func(err error) (int, any) {
+	//	switch e := err.(type) {
+	//	case *BlogError:
+	//		return http.StatusOK, e.Response()
+	//	default:
+	//		return http.StatusInternalServerError, "Internal Server Error"
+	//	}
+	//})
 	group := engine.Group("user")
+	var u *User
 	group.Post("/jsonParam", func(ctx *qiaomu.Context) {
 		user := User{}
 		ctx.DisallowUnknownFields = true
+		u.Age = 18 // 人为制造panic
 		//ctx.IsValidate = true
+		ctx.Logger = engine.Logger
+		ctx.Logger.WithFields(qlog.Fields{
+			"name": "qiaomu",
+			"id":   1000,
+		}).Debug("debug日志")
+		ctx.Logger.Info("info日志")
+		ctx.Logger.Error("error日志")
 		err := ctx.ShouldBind(&user, bind.JSON)
 		if err == nil {
 			ctx.JSON(http.StatusOK, user)
@@ -235,5 +253,12 @@ func main() {
 		}
 	})
 	engine.Run()
+}
 
+// 协程池测试
+func main() {
+	engine := qiaomu.Default()
+	group := engine.Group("user")
+
+	engine.Run()
 }

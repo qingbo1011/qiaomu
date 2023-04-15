@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/qingbo1011/qiaomu/bind"
@@ -33,7 +34,6 @@ type Context struct {
 
 // Render 渲染统一处理
 func (c *Context) Render(statusCode int, r render.Render) error {
-	// 如果设置了statusCode，对header的修改就不生效了
 	err := r.Render(c.W, statusCode)
 	c.StatusCode = statusCode
 	// 多次调用WriteHeader会产生这样的警告 superfluous response.WriteHeader
@@ -125,6 +125,21 @@ func (c *Context) Redirect(status int, url string) error {
 // String 渲染String字符串
 func (c *Context) String(status int, format string, values ...any) error {
 	return c.Render(status, &render.String{Format: format, Data: values})
+}
+
+// Fail 渲染失败返回数据
+func (c *Context) Fail(code int, msg string) {
+	c.String(code, utils.ConcatenatedString([]string{strconv.Itoa(code), "\n", msg}))
+}
+
+// HandleWithError 渲染错误信息的返回
+func (c *Context) HandleWithError(statusCode int, obj any, err error) {
+	if err != nil {
+		code, data := c.engine.errorHandler(err)
+		c.JSON(code, data)
+		return
+	}
+	c.JSON(statusCode, obj)
 }
 
 // GetQuery 获取query参数 (以/user/add?name=李四 为例，可以获取到name参数为李四)
@@ -308,9 +323,4 @@ func (c *Context) MustBindWith(obj any, bind bind.Binding) error {
 // ShouldBind 如果绑定出现错误，返回错误并由开发者自行处理错误和请求
 func (c *Context) ShouldBind(obj any, bind bind.Binding) error {
 	return bind.Bind(c.R, obj)
-}
-
-// Fail
-func (c *Context) Fail(code int, msg string) {
-	c.String(code, msg)
 }

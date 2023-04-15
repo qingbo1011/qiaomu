@@ -25,8 +25,7 @@ func (e *QError) check(err error) {
 
 type ErrorFuc func(msError *QError)
 
-//暴露一个方法 让用户自定义
-
+// Result 让用户自定义对错误的处理
 func (e *QError) Result(errFuc ErrorFuc) {
 	e.ErrFuc = errFuc
 }
