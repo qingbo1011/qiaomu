@@ -28,7 +28,7 @@ type Pool struct {
 	once         sync.Once     // 保证释放操作release只能调用一次，不能多次调用
 	workerCache  sync.Pool     // 缓存(worker的创建可以放在缓存中，提升效率)
 	cond         *sync.Cond    // 基于互斥锁实现的条件变量，用来协调想要访问共享资源的goroutine
-	PanicHandler func()        //
+	PanicHandler func()        // 协程池异常处理
 }
 
 // NewPool 创建协程池(默认过期时间5s)
@@ -114,7 +114,7 @@ func (p *Pool) Submit(task func()) error {
 	return nil
 }
 
-// GetWorker 获取协程池中的worker
+// GetWorker 获取协程池中的空闲worker
 func (p *Pool) GetWorker() (w *Worker) {
 	// 如果有空闲的worker,直接获取
 	readyWorker := func() {
@@ -131,7 +131,7 @@ func (p *Pool) GetWorker() (w *Worker) {
 		p.lock.Unlock()
 		return
 	}
-	// 如果没有空闲的worker，就新建一个worker
+	// 如果没有空闲的worker，而运行中的 worker 数量小于协程池 pool 的容量，就新建一个worker；
 	if p.running < p.cap {
 		p.lock.Unlock()
 		readyWorker()

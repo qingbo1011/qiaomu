@@ -253,3 +253,16 @@ func (e *Engine) Run() {
 		log.Fatalln(err)
 	}
 }
+
+// RunTLS 支持https
+func (e *Engine) RunTLS(addr, certFile, keyFile string) {
+	err := http.ListenAndServeTLS(addr, certFile, keyFile, e.Handler())
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// Handler 返回Handler
+func (e *Engine) Handler() http.Handler {
+	return e
+}

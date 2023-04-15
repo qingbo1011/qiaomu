@@ -2,13 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-	"sync"
-	"time"
 
 	"github.com/qingbo1011/qiaomu"
-	"github.com/qingbo1011/qiaomu/pool"
 )
 
 // 路由测试
@@ -257,7 +252,7 @@ type User struct {
 }*/
 
 // 协程池测试
-func main() {
+/*func main() {
 	engine := qiaomu.Default()
 	qpool, err := pool.NewPool(5)
 	if err != nil {
@@ -273,9 +268,8 @@ func main() {
 				wg.Done()
 			}()
 			fmt.Println("1111111")
-			//panic("这是1111的panic")
+			panic("这是1111的panic")
 			time.Sleep(3 * time.Second)
-
 		})
 		qpool.Submit(func() {
 			fmt.Println("22222222")
@@ -299,7 +293,15 @@ func main() {
 		})
 		wg.Wait()
 		fmt.Printf("time: %v \n", time.Now().UnixMilli()-currentTime)
-		ctx.JSON(http.StatusOK, "success")
+		ctx.String(http.StatusOK, "success")
 	})
+	engine.Run()
+}*/
+
+// 认证测试
+func main() {
+	engine := qiaomu.Default()
+	group := engine.Group("user")
+
 	engine.Run()
 }
