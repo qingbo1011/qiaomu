@@ -10,7 +10,7 @@ import (
 
 type sig struct{}
 
-const DefaultExpire = 5
+const DefaultExpireTime = 5
 
 var (
 	ErrorInValidCap    = errors.New("pool cap can not <= 0")
@@ -19,40 +19,24 @@ var (
 )
 
 type Pool struct {
-	//cap 容量 pool max cap
-	cap int32
-	//running 正在运行的worker的数量
-	running int32
-	//空闲worker
-	workers []*Worker
-	//expire 过期时间 空闲的worker超过这个时间 回收掉
-	expire time.Duration
-	//release 释放资源  pool就不能使用了
-	release chan sig
-	//lock 去保护pool里面的相关资源的安全
-	lock sync.Mutex
-	//once 释放只能调用一次 不能多次调用
-	once sync.Once
-	//workerCache 缓存
-	workerCache sync.Pool
-	//cond
-	cond *sync.Cond
-	//PanicHandler
-	PanicHandler func()
+	cap          int32         // 容量 (类似切片的cap,协程池最大容量 pool max cap)
+	running      int32         // 正在运行的worker的数量
+	workers      []*Worker     // 空闲worker
+	expire       time.Duration // 过期时间(空闲的worker超过这个时间就会被回收)
+	release      chan sig      // 释放资源(释放后协程池pool就不能使用了)
+	lock         sync.Mutex    // 通过互斥锁来保护pool里面的相关资源的安全
+	once         sync.Once     // 保证释放操作release只能调用一次，不能多次调用
+	workerCache  sync.Pool     // 缓存(worker的创建可以放在缓存中，提升效率)
+	cond         *sync.Cond    // 基于互斥锁实现的条件变量，用来协调想要访问共享资源的goroutine
+	PanicHandler func()        //
 }
 
+// NewPool 创建协程池(默认过期时间5s)
 func NewPool(cap int) (*Pool, error) {
-	return NewTimePool(cap, DefaultExpire)
+	return NewTimePool(cap, DefaultExpireTime)
 }
 
-//func NewPoolConf() (*Pool, error) {
-//	cap, ok := config.Conf.Pool["cap"]
-//	if !ok {
-//		return nil, errors.New("cap config not exist")
-//	}
-//	return NewTimePool(int(cap.(int64)), DefaultExpire)
-//}
-
+// NewTimePool 创建协程池(默认过期由用户指定)
 func NewTimePool(cap int, expire int) (*Pool, error) {
 	if cap <= 0 {
 		return nil, ErrorInValidCap
@@ -77,14 +61,22 @@ func NewTimePool(cap int, expire int) (*Pool, error) {
 	return p, nil
 }
 
+//func NewPoolConf() (*Pool, error) {
+//	cap, ok := config.Conf.Pool["cap"]
+//	if !ok {
+//		return nil, errors.New("cap config not exist")
+//	}
+//	return NewTimePool(int(cap.(int64)), DefaultExpire)
+//}
+
+// 定时清理过期的空闲worker
 func (p *Pool) expireWorker() {
-	//定时清理过期的空闲worker
-	ticker := time.NewTicker(p.expire)
+	ticker := time.NewTicker(p.expire) // 利用time.NewTicker实现定时器
 	for range ticker.C {
 		if p.IsClosed() {
 			break
 		}
-		//循环空闲的workers 如果当前时间和worker的最后运行任务的时间 差值大于expire 进行清理
+		// 遍历空闲的worker：如果当前时间和worker的最后运行任务的时间的差值大于expire，则对该worker进行清理
 		p.lock.Lock()
 		idleWorkers := p.workers
 		n := len(idleWorkers) - 1
@@ -98,12 +90,10 @@ func (p *Pool) expireWorker() {
 				w.task <- nil
 				idleWorkers[i] = nil
 			}
-			// 3 2
 			if clearN != -1 {
 				if clearN >= len(idleWorkers)-1 {
 					p.workers = idleWorkers[:0]
 				} else {
-					// len=3 0,1 del 2
 					p.workers = idleWorkers[clearN+1:]
 				}
 				fmt.Printf("清除完成,running:%d, workers:%v \n", p.running, p.workers)
@@ -113,22 +103,20 @@ func (p *Pool) expireWorker() {
 	}
 }
 
-//提交任务
-
+// Submit 给协程池提交任务
 func (p *Pool) Submit(task func()) error {
 	if len(p.release) > 0 {
 		return ErrorHasClosed
 	}
-
-	//获取池里面的一个worker，然后执行任务就可以了
+	// 获取协程池里面的一个worker，然后执行任务
 	w := p.GetWorker()
 	w.task <- task
 	return nil
 }
 
+// GetWorker 获取协程池中的worker
 func (p *Pool) GetWorker() (w *Worker) {
-	//1. 目的获取pool里面的worker
-	//2. 如果 有空闲的worker 直接获取
+	// 如果有空闲的worker,直接获取
 	readyWorker := func() {
 		w = p.workerCache.Get().(*Worker)
 		w.run()
@@ -143,31 +131,18 @@ func (p *Pool) GetWorker() (w *Worker) {
 		p.lock.Unlock()
 		return
 	}
-	//3. 如果没有空闲的worker，要新建一个worker
+	// 如果没有空闲的worker，就新建一个worker
 	if p.running < p.cap {
 		p.lock.Unlock()
-		//还不够pool的容量，直接新建一个
-		//c := p.workerCache.Get()
-		//var w *Worker
-		//if c == nil {
-		//	w = &Worker{
-		//		pool: p,
-		//		task: make(chan func(), 1),
-		//	}
-		//} else {
-		//	w = c.(*Worker)
-		//}
-		//w.run()
 		readyWorker()
 		return
 	}
 	p.lock.Unlock()
-	//4. 如果正在运行的workers 如果大于pool容量，阻塞等待，worker释放
-	//for {
+	// 如果正在运行的worker数量大于pool容量，则阻塞等待，直到有worker释放
 	return p.waitIdleWorker()
-	//}
 }
 
+// 获取worker(如果没有空闲worker则等待)
 func (p *Pool) waitIdleWorker() *Worker {
 	p.lock.Lock()
 	p.cond.Wait()
@@ -176,8 +151,7 @@ func (p *Pool) waitIdleWorker() *Worker {
 	n := len(idleWorkers) - 1
 	if n < 0 {
 		p.lock.Unlock()
-		if p.running < p.cap {
-			//还不够pool的容量，直接新建一个
+		if p.running < p.cap { // 正在运行的worker数量小于pool的容量，才可以新建worker
 			c := p.workerCache.Get()
 			var w *Worker
 			if c == nil {
@@ -204,6 +178,7 @@ func (p *Pool) incRunning() {
 	atomic.AddInt32(&p.running, 1)
 }
 
+// PutWorker 将指定worker回收到协程池中
 func (p *Pool) PutWorker(w *Worker) {
 	w.lastTime = time.Now()
 	p.lock.Lock()
@@ -216,6 +191,7 @@ func (p *Pool) decRunning() {
 	atomic.AddInt32(&p.running, -1)
 }
 
+// Release 释放协程池
 func (p *Pool) Release() {
 	p.once.Do(func() {
 		//只执行一次
@@ -235,11 +211,12 @@ func (p *Pool) Release() {
 	})
 }
 
+// IsClosed 判断协程池是否关闭
 func (p *Pool) IsClosed() bool {
-
 	return len(p.release) > 0
 }
 
+// Restart 重启协程池
 func (p *Pool) Restart() bool {
 	if len(p.release) <= 0 {
 		return true
@@ -253,6 +230,7 @@ func (p *Pool) Running() int {
 	return int(atomic.LoadInt32(&p.running))
 }
 
+// Free 返回协程池中空闲的worker数量
 func (p *Pool) Free() int {
 	return int(p.cap - p.running)
 }

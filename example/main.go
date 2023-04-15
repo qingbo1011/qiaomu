@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/qingbo1011/qiaomu"
-	"github.com/qingbo1011/qiaomu/bind"
-	qlog "github.com/qingbo1011/qiaomu/log"
+	"github.com/qingbo1011/qiaomu/pool"
 )
 
 // 路由测试
@@ -221,7 +222,7 @@ type User struct {
 }*/
 
 // 错误处理测试
-func main() {
+/*func main() {
 	engine := qiaomu.Default()
 	//engine.RegisterErrorHandler(func(err error) (int, any) {
 	//	switch e := err.(type) {
@@ -253,12 +254,52 @@ func main() {
 		}
 	})
 	engine.Run()
-}
+}*/
 
 // 协程池测试
 func main() {
 	engine := qiaomu.Default()
+	qpool, err := pool.NewPool(5)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	group := engine.Group("user")
+	group.Post("/pool", func(ctx *qiaomu.Context) {
+		currentTime := time.Now().UnixMilli()
+		var wg sync.WaitGroup
+		wg.Add(5)
+		qpool.Submit(func() {
+			defer func() {
+				wg.Done()
+			}()
+			fmt.Println("1111111")
+			//panic("这是1111的panic")
+			time.Sleep(3 * time.Second)
 
+		})
+		qpool.Submit(func() {
+			fmt.Println("22222222")
+			time.Sleep(3 * time.Second)
+			wg.Done()
+		})
+		qpool.Submit(func() {
+			fmt.Println("33333333")
+			time.Sleep(3 * time.Second)
+			wg.Done()
+		})
+		qpool.Submit(func() {
+			fmt.Println("44444")
+			time.Sleep(3 * time.Second)
+			wg.Done()
+		})
+		qpool.Submit(func() {
+			fmt.Println("55555555")
+			time.Sleep(3 * time.Second)
+			wg.Done()
+		})
+		wg.Wait()
+		fmt.Printf("time: %v \n", time.Now().UnixMilli()-currentTime)
+		ctx.JSON(http.StatusOK, "success")
+	})
 	engine.Run()
 }
