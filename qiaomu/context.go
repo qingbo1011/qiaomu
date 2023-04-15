@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/qingbo1011/qiaomu/bind"
 	qlog "github.com/qingbo1011/qiaomu/log"
@@ -30,6 +31,8 @@ type Context struct {
 	DisallowUnknownFields bool
 	IsValidate            bool
 	Logger                *qlog.Logger
+	Keys                  map[string]any
+	mu                    sync.RWMutex
 }
 
 // Render 渲染统一处理
@@ -165,10 +168,10 @@ func (c *Context) GetQueryArray(key string) ([]string, bool) {
 }
 
 // QueryArray 效果跟GetQueryArray类似，只不过只返回切片，若切片为空即说明获取失败(false)
-func (c *Context) QueryArray(key string) (values []string) {
+func (c *Context) QueryArray(key string) []string {
 	c.initQueryCache()
-	values, _ = c.queryCache[key]
-	return
+	values, _ := c.queryCache[key]
+	return values
 }
 
 // 初始化queryCache
@@ -323,4 +326,22 @@ func (c *Context) MustBindWith(obj any, bind bind.Binding) error {
 // ShouldBind 如果绑定出现错误，返回错误并由开发者自行处理错误和请求
 func (c *Context) ShouldBind(obj any, bind bind.Binding) error {
 	return bind.Bind(c.R, obj)
+}
+
+// Set 在Context中设置信息
+func (c *Context) Set(key string, value any) {
+	c.mu.Lock()
+	if c.Keys == nil {
+		c.Keys = make(map[string]any)
+	}
+	c.Keys[key] = value
+	c.mu.Unlock()
+}
+
+// Get 从Context中获取信息
+func (c *Context) Get(key string) (any, bool) {
+	c.mu.RLock()
+	value, ok := c.Keys[key]
+	c.mu.RUnlock()
+	return value, ok
 }
