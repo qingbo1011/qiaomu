@@ -45,13 +45,13 @@ func NewPool(cap int) (*Pool, error) {
 	return NewTimePool(cap, DefaultExpire)
 }
 
-func NewPoolConf() (*Pool, error) {
-	cap, ok := config.Conf.Pool["cap"]
-	if !ok {
-		return nil, errors.New("cap config not exist")
-	}
-	return NewTimePool(int(cap.(int64)), DefaultExpire)
-}
+//func NewPoolConf() (*Pool, error) {
+//	cap, ok := config.Conf.Pool["cap"]
+//	if !ok {
+//		return nil, errors.New("cap config not exist")
+//	}
+//	return NewTimePool(int(cap.(int64)), DefaultExpire)
+//}
 
 func NewTimePool(cap int, expire int) (*Pool, error) {
 	if cap <= 0 {
