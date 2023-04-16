@@ -280,6 +280,7 @@ func (s *QueenSession) batchValues(data []any) {
 func (s *QueenSession) Update(data ...any) (int64, int64, error) {
 	// Update("age",1) or Update(user)
 	if len(data) > 2 {
+		s.db.logger.Error(errors.New("param not valid"))
 		return -1, -1, errors.New("param not valid")
 	}
 	if len(data) == 0 {
@@ -296,21 +297,26 @@ func (s *QueenSession) Update(data ...any) (int64, int64, error) {
 			stmt, err = s.db.db.Prepare(sb.String())
 		}
 		if err != nil {
+			s.db.logger.Error(err)
 			return -1, -1, err
 		}
 		s.values = append(s.values, s.whereValues...)
 		r, err := stmt.Exec(s.values...)
 		if err != nil {
+			s.db.logger.Error(err)
 			return -1, -1, err
 		}
 		id, err := r.LastInsertId()
 		if err != nil {
+			s.db.logger.Error(err)
 			return -1, -1, err
 		}
 		affected, err := r.RowsAffected()
 		if err != nil {
+			s.db.logger.Error(err)
 			return -1, -1, err
 		}
+		s.db.logger.Info(utils.ConcatenatedString([]string{"影响条数：", strconv.Itoa(int(affected))}))
 		return id, affected, nil
 	}
 	single := true
@@ -337,7 +343,7 @@ func (s *QueenSession) Update(data ...any) (int64, int64, error) {
 		for i := 0; i < tVar.NumField(); i++ {
 			fieldName := tVar.Field(i).Name
 			tag := tVar.Field(i).Tag
-			sqlTag := tag.Get("msorm")
+			sqlTag := tag.Get("qorm")
 			if sqlTag == "" {
 				sqlTag = strings.ToLower(Name(fieldName))
 			} else {
@@ -374,20 +380,149 @@ func (s *QueenSession) Update(data ...any) (int64, int64, error) {
 		stmt, err = s.db.db.Prepare(sb.String())
 	}
 	if err != nil {
+		s.db.logger.Error(err)
 		return -1, -1, err
 	}
 	s.values = append(s.values, s.whereValues...)
 	r, err := stmt.Exec(s.values...)
 	if err != nil {
+		s.db.logger.Error(err)
 		return -1, -1, err
 	}
 	id, err := r.LastInsertId()
 	if err != nil {
+		s.db.logger.Error(err)
 		return -1, -1, err
 	}
 	affected, err := r.RowsAffected()
 	if err != nil {
+		s.db.logger.Error(err)
 		return -1, -1, err
 	}
+	s.db.logger.Info(utils.ConcatenatedString([]string{"影响条数：", strconv.Itoa(int(affected))}))
 	return id, affected, nil
+}
+
+// UpdateParam 指定字段名和value进行更新
+func (s *QueenSession) UpdateParam(field string, value any) *QueenSession {
+	if s.updateParam.String() != "" {
+		s.updateParam.WriteString(",")
+	}
+	s.updateParam.WriteString(field)
+	s.updateParam.WriteString(" = ? ")
+	s.values = append(s.values, value)
+	return s
+}
+
+// UpdateMap 工具map更新数据(key为字段名，value为更新数据)
+func (s *QueenSession) UpdateMap(data map[string]any) *QueenSession {
+	for k, v := range data {
+		if s.updateParam.String() != "" {
+			s.updateParam.WriteString(",")
+		}
+		s.updateParam.WriteString(k)
+		s.updateParam.WriteString(" = ? ")
+		s.values = append(s.values, v)
+	}
+	return s
+}
+
+// Where 处理含有where的session
+func (s *QueenSession) Where(field string, value any) *QueenSession {
+	// id=1 and name=xx
+	if s.whereParam.String() == "" {
+		s.whereParam.WriteString(" where ")
+	}
+	s.whereParam.WriteString(field)
+	s.whereParam.WriteString(" = ")
+	s.whereParam.WriteString(" ? ")
+	s.whereValues = append(s.whereValues, value)
+	return s
+}
+
+// And 拼接and
+func (s *QueenSession) And() *QueenSession {
+	s.whereParam.WriteString(" and ")
+	return s
+}
+
+// Or 拼接or
+func (s *QueenSession) Or() *QueenSession {
+	s.whereParam.WriteString(" or ")
+	return s
+}
+
+// Like name like %s%
+func (s *QueenSession) Like(field string, value any) *QueenSession {
+
+	if s.whereParam.String() == "" {
+		s.whereParam.WriteString(" where ")
+	}
+	s.whereParam.WriteString(field)
+	s.whereParam.WriteString(" like ")
+	s.whereParam.WriteString(" ? ")
+	s.whereValues = append(s.whereValues, "%"+value.(string)+"%")
+	return s
+}
+
+// LikeRight name like %s%
+func (s *QueenSession) LikeRight(field string, value any) *QueenSession {
+	if s.whereParam.String() == "" {
+		s.whereParam.WriteString(" where ")
+	}
+	s.whereParam.WriteString(field)
+	s.whereParam.WriteString(" like ")
+	s.whereParam.WriteString(" ? ")
+	s.whereValues = append(s.whereValues, value.(string)+"%")
+	return s
+}
+
+// LikeLeft name like %s%
+func (s *QueenSession) LikeLeft(field string, value any) *QueenSession {
+	if s.whereParam.String() == "" {
+		s.whereParam.WriteString(" where ")
+	}
+	s.whereParam.WriteString(field)
+	s.whereParam.WriteString(" like ")
+	s.whereParam.WriteString(" ? ")
+	s.whereValues = append(s.whereValues, "%"+value.(string))
+	return s
+}
+
+// Group group by aa,bb
+func (s *QueenSession) Group(field ...string) *QueenSession {
+	s.whereParam.WriteString(" group by ")
+	s.whereParam.WriteString(strings.Join(field, ","))
+	return s
+}
+
+// Order  Order("aa","desc","bb","asc)
+func (s *QueenSession) Order(field ...string) *QueenSession {
+	if len(field)%2 != 0 {
+		panic("field num not true")
+	}
+	s.whereParam.WriteString(" order by ")
+	for index, v := range field {
+		s.whereParam.WriteString(v + " ")
+		if index%2 != 0 && index < len(field)-1 {
+			s.whereParam.WriteString(",")
+		}
+	}
+	return s
+}
+
+// OrderDesc order by aa,bb desc
+func (s *QueenSession) OrderDesc(field ...string) *QueenSession {
+	s.whereParam.WriteString(" order by ")
+	s.whereParam.WriteString(strings.Join(field, ","))
+	s.whereParam.WriteString(" desc ")
+	return s
+}
+
+// OrderAsc order by aa,bb asc
+func (s *QueenSession) OrderAsc(field ...string) *QueenSession {
+	s.whereParam.WriteString(" order by ")
+	s.whereParam.WriteString(strings.Join(field, ","))
+	s.whereParam.WriteString(" asc ")
+	return s
 }

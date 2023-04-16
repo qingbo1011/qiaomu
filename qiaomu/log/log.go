@@ -208,12 +208,12 @@ func (f *LoggerFormatter) format(msg any) string {
 		// 要带颜色: error的颜色 为红色 info为绿色 debug为蓝色
 		levelColor := f.LevelColor()
 		msgColor := f.MsgColor()
-		return fmt.Sprintf("%s [msgo] %s %s%v%s | level= %s %s %s | msg=%s %#v %s | fields=%v ",
+		return fmt.Sprintf("%s [qiaomu] %s %s%v%s | level= %s %s %s | msg=%s %#v %s | fields=%v ",
 			yellow, reset, blue, now.Format("2006/01/02 - 15:04:05"), reset,
 			levelColor, f.Level.Level(), reset, msgColor, msg, reset, f.LoggerFields,
 		)
 	}
-	return fmt.Sprintf("[msgo] %v | level=%s | msg=%#v | fields=%#v",
+	return fmt.Sprintf("[qiaomu] %v | level=%s | msg=%#v | fields=%#v",
 		now.Format("2006/01/02 - 15:04:05"),
 		f.Level.Level(), msg, f.LoggerFields)
 }

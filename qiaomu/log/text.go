@@ -36,12 +36,12 @@ func (f *TextFormatter) Format(param *LoggingFormatParam) string {
 		//要带颜色  error的颜色 为红色 info为绿色 debug为蓝色
 		levelColor := f.LevelColor(param.Level)
 		msgColor := f.MsgColor(param.Level)
-		return fmt.Sprintf("%s [msgo] %s %s%v%s | level= %s %s %s%s%s %v %s %s ",
+		return fmt.Sprintf("%s [qiaomu] %s %s%v%s | level= %s %s %s%s%s %v %s %s ",
 			yellow, reset, blue, now.Format("2006/01/02 - 15:04:05"), reset,
 			levelColor, param.Level.Level(), reset, msgColor, msgInfo, param.Msg, reset, fieldsString,
 		)
 	}
-	return fmt.Sprintf("[msgo] %v | level=%s%s%v %s",
+	return fmt.Sprintf("[qiaomu] %v | level=%s%s%v %s",
 		now.Format("2006/01/02 - 15:04:05"),
 		param.Level.Level(), msgInfo, param.Msg, fieldsString)
 }
