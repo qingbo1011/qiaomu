@@ -6,6 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/qingbo1011/qiaomu/config"
 )
 
 type sig struct{}
@@ -61,13 +63,14 @@ func NewTimePool(cap int, expire int) (*Pool, error) {
 	return p, nil
 }
 
-//func NewPoolConf() (*Pool, error) {
-//	cap, ok := config.Conf.Pool["cap"]
-//	if !ok {
-//		return nil, errors.New("cap config not exist")
-//	}
-//	return NewTimePool(int(cap.(int64)), DefaultExpire)
-//}
+// NewPoolConf 根据配置文件创建协程池
+func NewPoolConf() (*Pool, error) {
+	cap, ok := config.Conf.Pool["cap"]
+	if !ok {
+		return nil, errors.New("cap config not exist")
+	}
+	return NewTimePool(int(cap.(int64)), DefaultExpireTime)
+}
 
 // 定时清理过期的空闲worker
 func (p *Pool) expireWorker() {

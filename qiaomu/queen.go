@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/qingbo1011/qiaomu/config"
 	qlog "github.com/qingbo1011/qiaomu/log"
 	"github.com/qingbo1011/qiaomu/render"
 	"github.com/qingbo1011/qiaomu/utils"
@@ -170,10 +171,10 @@ func New() *Engine {
 func Default() *Engine {
 	engine := New()
 	engine.Logger = qlog.Default()
-	//logPath, ok := config.Conf.Log["path"]
-	//if ok {
-	//	engine.Logger.SetLogPath(logPath.(string))
-	//}
+	logPath, ok := config.Conf.Log["path"]
+	if ok {
+		engine.Logger.SetLogPath(logPath.(string))
+	}
 	engine.Use(Logging, Recovery)
 	engine.router.engine = engine
 	return engine
@@ -234,6 +235,15 @@ func (e *Engine) SetFuncMap(funcMap template.FuncMap) {
 func (e *Engine) LoadTemplate(pattern string) {
 	t := template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
 	e.SetHtmlTemplate(t)
+}
+
+// LoadTemplateConf 根据配置文件读取模板
+func (e *Engine) LoadTemplateConf() {
+	pattern, ok := config.Conf.Template["pattern"]
+	if ok {
+		t := template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern.(string)))
+		e.SetHtmlTemplate(t)
+	}
 }
 
 // SetHtmlTemplate 加载HTML模板

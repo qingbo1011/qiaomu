@@ -336,9 +336,19 @@ type User struct {
 }*/
 
 // 配置文件测试
-func main() {
+/*func main() {
 	engine := qiaomu.Default()
 	group := engine.Group("user")
-
+	group.Get("/conf", func(ctx *qiaomu.Context) {
+		ctx.Logger.Info("Info 日志信息")
+		ctx.String(http.StatusOK, "success")
+	})
 	engine.Run()
-}
+}*/
+
+// ORM 测试
+/*func main() {
+	engine := qiaomu.Default()
+	group := engine.Group("user")
+	engine.Run()
+}*/
