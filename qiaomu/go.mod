@@ -2,7 +2,11 @@ module github.com/qingbo1011/qiaomu
 
 go 1.18
 
-require github.com/go-playground/validator/v10 v10.12.0
+require (
+	github.com/BurntSushi/toml v1.2.1
+	github.com/go-playground/validator/v10 v10.12.0
+	github.com/golang-jwt/jwt/v4 v4.3.0
+)
 
 require (
 	github.com/go-playground/locales v0.14.1 // indirect

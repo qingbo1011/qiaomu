@@ -299,6 +299,43 @@ type User struct {
 }*/
 
 // 认证测试
+/*func main() {
+	engine := qiaomu.Default()
+	auth := &qiaomu.Accounts{
+		Users: make(map[string]string),
+	}
+	auth.Users["qingbo"] = "1234"
+	jwtHandler := &token.JwtHandler{Key: []byte("qiaomu")}
+	//fmt.Println(qiaomu.BasicAuth("qingbo", "1234"))
+	//engine.Use(auth.BasicAuth, jwtHandler.AuthInterceptor) // 注册Basic认证中间件
+	engine.Use(jwtHandler.AuthInterceptor) // 注册jwt登录中间件
+	group := engine.Group("user")
+	group.Get("/basic", func(ctx *qiaomu.Context) {
+		ctx.String(http.StatusOK, "success")
+	})
+	group.Get("/login", func(ctx *qiaomu.Context) {
+		jwt := &token.JwtHandler{}
+		jwt.Key = []byte("qiaomu")
+		jwt.SendCookie = true
+		jwt.TimeOut = 10 * time.Minute
+		jwt.RefreshTimeOut = 20 * time.Minute
+		jwt.Authenticator = func(ctx *qiaomu.Context) (map[string]any, error) {
+			data := make(map[string]any)
+			data["userId"] = 1
+			return data, nil
+		}
+		token, err := jwt.LoginHandler(ctx)
+		if err != nil {
+			log.Println(err)
+			ctx.JSON(http.StatusOK, err.Error())
+			return
+		}
+		ctx.JSON(http.StatusOK, token)
+	})
+	engine.Run()
+}*/
+
+// 配置文件测试
 func main() {
 	engine := qiaomu.Default()
 	group := engine.Group("user")

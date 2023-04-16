@@ -33,6 +33,7 @@ type Context struct {
 	Logger                *qlog.Logger
 	Keys                  map[string]any
 	mu                    sync.RWMutex
+	sameSite              http.SameSite
 }
 
 // Render 渲染统一处理
@@ -344,4 +345,26 @@ func (c *Context) Get(key string) (any, bool) {
 	value, ok := c.Keys[key]
 	c.mu.RUnlock()
 	return value, ok
+}
+
+// SetBasicAuth 在Context中设置Basic认证
+func (c *Context) SetBasicAuth(username, password string) {
+	c.R.Header.Set("Authorization", "Basic "+BasicAuth(username, password))
+}
+
+// SetCookie 写入Cookie(在jwt认证成功后)
+func (c *Context) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool) {
+	if path == "" {
+		path = "/"
+	}
+	http.SetCookie(c.W, &http.Cookie{
+		Name:     name,
+		Value:    url.QueryEscape(value),
+		MaxAge:   maxAge,
+		Path:     path,
+		Domain:   domain,
+		SameSite: c.sameSite,
+		Secure:   secure,
+		HttpOnly: httpOnly,
+	})
 }

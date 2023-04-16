@@ -3,6 +3,8 @@ package qiaomu
 import (
 	"encoding/base64"
 	"net/http"
+
+	"github.com/qingbo1011/qiaomu/utils"
 )
 
 type Accounts struct {
@@ -11,7 +13,7 @@ type Accounts struct {
 	Realm         string
 }
 
-// BasicAuth 从header中获取base64字符串
+// BasicAuth Basic认证中间件
 func (a *Accounts) BasicAuth(next HandlerFunc) HandlerFunc {
 	return func(ctx *Context) {
 		username, password, ok := ctx.R.BasicAuth()
@@ -42,7 +44,8 @@ func (a *Accounts) unAuthHandler(ctx *Context) {
 	}
 }
 
+// BasicAuth 根据username和password获取Basic认证的Base64字符串
 func BasicAuth(username, password string) string {
-	auth := username + ":" + password
+	auth := utils.ConcatenatedString([]string{username, ":", password})
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
