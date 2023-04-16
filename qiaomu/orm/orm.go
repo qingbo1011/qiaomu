@@ -427,6 +427,214 @@ func (s *QueenSession) UpdateMap(data map[string]any) *QueenSession {
 	return s
 }
 
+// Delete 删除数据
+func (s *QueenSession) Delete() (int64, error) {
+	// delete from table where id=?
+	query := fmt.Sprintf("delete from %s ", s.tableName)
+	var sb strings.Builder
+	sb.WriteString(query)
+	sb.WriteString(s.whereParam.String())
+	s.db.logger.Info(sb.String())
+
+	var stmt *sql.Stmt
+	var err error
+	if s.beginTx {
+		stmt, err = s.tx.Prepare(sb.String())
+	} else {
+		stmt, err = s.db.db.Prepare(sb.String())
+	}
+	if err != nil {
+		return 0, err
+	}
+	r, err := stmt.Exec(s.whereValues...)
+	if err != nil {
+		return 0, err
+	}
+	return r.RowsAffected()
+}
+
+// Select 查询数据
+func (s *QueenSession) Select(data any, fields ...string) ([]any, error) {
+	t := reflect.TypeOf(data)
+	if t.Kind() != reflect.Pointer {
+		return nil, errors.New("data must be pointer")
+	}
+	fieldStr := "*"
+	if len(fields) > 0 {
+		fieldStr = strings.Join(fields, ",")
+	}
+	query := fmt.Sprintf("select %s from %s ", fieldStr, s.tableName)
+	var sb strings.Builder
+	sb.WriteString(query)
+	sb.WriteString(s.whereParam.String())
+	s.db.logger.Info(sb.String())
+
+	stmt, err := s.db.db.Prepare(sb.String())
+	if err != nil {
+		return nil, err
+	}
+	rows, err := stmt.Query(s.whereValues...)
+	if err != nil {
+		return nil, err
+	}
+	//id user_name age
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	result := make([]any, 0)
+	for {
+		if rows.Next() {
+			//由于 传进来的是一个指针地址 如果每次赋值，实际都是一个 result里面 值都一样
+			//每次查询的时候 data都重新换一个地址
+			data := reflect.New(t.Elem()).Interface()
+			values := make([]any, len(columns))
+			fieldScan := make([]any, len(columns))
+			for i := range fieldScan {
+				fieldScan[i] = &values[i]
+			}
+			err := rows.Scan(fieldScan...)
+			if err != nil {
+				return nil, err
+			}
+			tVar := t.Elem()
+			vVar := reflect.ValueOf(data).Elem()
+			for i := 0; i < tVar.NumField(); i++ {
+				name := tVar.Field(i).Name
+				tag := tVar.Field(i).Tag
+				//id,auto
+				sqlTag := tag.Get("msorm")
+				if sqlTag == "" {
+					sqlTag = strings.ToLower(Name(name))
+				} else {
+					if strings.Contains(sqlTag, ",") {
+						sqlTag = sqlTag[:strings.Index(sqlTag, ",")]
+					}
+				}
+
+				for j, colName := range columns {
+					if sqlTag == colName {
+						target := values[j]
+						targetValue := reflect.ValueOf(target)
+						fieldType := tVar.Field(i).Type
+						//这样不行 类型不匹配 转换类型
+						result := reflect.ValueOf(targetValue.Interface()).Convert(fieldType)
+						vVar.Field(i).Set(result)
+					}
+				}
+
+			}
+			result = append(result, data)
+		} else {
+			break
+		}
+	}
+	return result, nil
+}
+
+// SelectOne 只返回一条符合查询条件的数据
+func (s *QueenSession) SelectOne(data any, fields ...string) error {
+	t := reflect.TypeOf(data)
+	if t.Kind() != reflect.Pointer {
+		return errors.New("data must be pointer")
+	}
+	fieldStr := "*"
+	if len(fields) > 0 {
+		fieldStr = strings.Join(fields, ",")
+	}
+	query := fmt.Sprintf("select %s from %s ", fieldStr, s.tableName)
+	var sb strings.Builder
+	sb.WriteString(query)
+	sb.WriteString(s.whereParam.String())
+	s.db.logger.Info(sb.String())
+
+	stmt, err := s.db.db.Prepare(sb.String())
+	if err != nil {
+		return err
+	}
+	rows, err := stmt.Query(s.whereValues...)
+	if err != nil {
+		return err
+	}
+	// id user_name age
+	columns, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+	values := make([]any, len(columns))
+	fieldScan := make([]any, len(columns))
+	for i := range fieldScan {
+		fieldScan[i] = &values[i]
+	}
+	if rows.Next() {
+		err := rows.Scan(fieldScan...)
+		if err != nil {
+			return err
+		}
+		tVar := t.Elem()
+		vVar := reflect.ValueOf(data).Elem()
+		for i := 0; i < tVar.NumField(); i++ {
+			name := tVar.Field(i).Name
+			tag := tVar.Field(i).Tag
+			// id,auto
+			sqlTag := tag.Get("msorm")
+			if sqlTag == "" {
+				sqlTag = strings.ToLower(Name(name))
+			} else {
+				if strings.Contains(sqlTag, ",") {
+					sqlTag = sqlTag[:strings.Index(sqlTag, ",")]
+				}
+			}
+
+			for j, colName := range columns {
+				if sqlTag == colName {
+					target := values[j]
+					targetValue := reflect.ValueOf(target)
+					fieldType := tVar.Field(i).Type
+					// 这样不行 类型不匹配 转换类型
+					result := reflect.ValueOf(targetValue.Interface()).Convert(fieldType)
+					vVar.Field(i).Set(result)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// Count count(*)操作
+func (s *QueenSession) Count() (int64, error) {
+	return s.Aggregate("count", "*")
+}
+
+// Aggregate 计数操作
+func (s *QueenSession) Aggregate(funcName string, field string) (int64, error) {
+	var fieldSb strings.Builder
+	fieldSb.WriteString(funcName)
+	fieldSb.WriteString("(")
+	fieldSb.WriteString(field)
+	fieldSb.WriteString(")")
+	query := fmt.Sprintf("select %s from %s ", fieldSb.String(), s.tableName)
+	var sb strings.Builder
+	sb.WriteString(query)
+	sb.WriteString(s.whereParam.String())
+	s.db.logger.Info(sb.String())
+
+	stmt, err := s.db.db.Prepare(sb.String())
+	if err != nil {
+		return 0, err
+	}
+	row := stmt.QueryRow(s.whereValues...)
+	if row.Err() != nil {
+		return 0, err
+	}
+	var result int64
+	err = row.Scan(&result)
+	if err != nil {
+		return 0, err
+	}
+	return result, nil
+}
+
 // Where 处理含有where的session
 func (s *QueenSession) Where(field string, value any) *QueenSession {
 	// id=1 and name=xx
