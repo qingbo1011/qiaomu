@@ -601,7 +601,6 @@ func (s *QueenSession) SelectOne(data any, fields ...string) error {
 	return nil
 }
 
-// 1
 // Count count(*)操作
 func (s *QueenSession) Count() (int64, error) {
 	return s.Aggregate("count", "*")
