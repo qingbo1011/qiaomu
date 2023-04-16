@@ -635,6 +635,7 @@ func (s *QueenSession) Aggregate(funcName string, field string) (int64, error) {
 	return result, nil
 }
 
+// 1
 // Where 处理含有where的session
 func (s *QueenSession) Where(field string, value any) *QueenSession {
 	// id=1 and name=xx
