@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
+	"github.com/qingbo1011/goodscenter/api"
 	"github.com/qingbo1011/goodscenter/model"
 	"github.com/qingbo1011/ordercenter/service"
 	"github.com/qingbo1011/qiaomu"
@@ -56,6 +58,15 @@ func main() {
 		v := &model.Result{}
 		json.Unmarshal(body, v)
 		ctx.JSON(http.StatusOK, v)
+	})
+	group.Get("/findgrpc", func(ctx *qiaomu.Context) {
+		config := rpc.DefaultGrpcClientConfig()
+		config.Address = "127.0.0.1:9111"
+		client, _ := rpc.NewGrpcClient(config)
+		defer client.Conn.Close()
+		goodsApiClient := api.NewGoodsApiClient(client.Conn)
+		goodsResponse, _ := goodsApiClient.Find(context.Background(), &api.GoodsRequest{})
+		ctx.JSON(http.StatusOK, goodsResponse)
 	})
 	engine.Run(":8083")
 }
