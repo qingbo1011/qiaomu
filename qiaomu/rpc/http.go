@@ -7,12 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
 	"time"
+
+	qlog "github.com/qingbo1011/qiaomu/log"
 )
 
 type QueenHttpClient struct {
@@ -72,7 +73,8 @@ func (c *QueenHttpClientSession) Get(url string, args map[string]any) ([]byte, e
 	if args != nil && len(args) > 0 {
 		url = url + "?" + c.toValues(args)
 	}
-	log.Println(url)
+	logger := qlog.Default()
+	logger.Info(url)
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -202,13 +204,13 @@ func (c *QueenHttpClientSession) Do(service string, method string) QueenService 
 		panic(errors.New("method not found"))
 	}
 	tag := tVar.Field(fieldIndex).Tag
-	rpcInfo := tag.Get("msrpc")
+	rpcInfo := tag.Get("qrpc")
 	if rpcInfo == "" {
-		panic(errors.New("not msrpc tag"))
+		panic(errors.New("not qrpc tag"))
 	}
 	split := strings.Split(rpcInfo, ",")
 	if len(split) != 2 {
-		panic(errors.New("tag msrpc not valid"))
+		panic(errors.New("tag qrpc not valid"))
 	}
 	methodType := split[0]
 	path := split[1]
