@@ -31,7 +31,7 @@ type Serializer interface {
 	DeSerialize(data []byte, target any) error
 }
 
-// GobSerializer Gob协议
+// GobSerializer Gob协议1
 type GobSerializer struct{}
 
 func (c GobSerializer) Serialize(data any) ([]byte, error) {
