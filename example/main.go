@@ -346,7 +346,7 @@ type User struct {
 	engine.Run()
 }*/
 
-// ORM 测试
+// RPC测试
 /*func main() {
 	engine := qiaomu.Default()
 	group := engine.Group("user")
