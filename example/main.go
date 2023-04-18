@@ -29,7 +29,7 @@ import (
 	group.Post("/log/*", func(ctx *qiaomu.Context) {
 		fmt.Fprint(ctx.W, "Post,/log/*")
 	})
-	engine.Run()
+	engine.Run("8081")
 }*/
 
 // Log 定义一个测试中间件
@@ -67,7 +67,7 @@ func Log(next qiaomu.HandlerFunc) qiaomu.HandlerFunc {
 		fmt.Fprint(ctx.W, "/info2 GET")
 	})
 
-	engine.Run()
+	engine.Run("8081")
 }*/
 
 type User struct {
@@ -127,7 +127,7 @@ type User struct {
 		ctx.String(http.StatusFound, "%s是一个%s web框架", "qiaomu", "go的")
 	})
 
-	engine.Run()
+	engine.Run("8081")
 }*/
 
 // 参数处理测试
@@ -181,7 +181,7 @@ type User struct {
 			log.Println(err)
 		}
 	})
-	engine.Run()
+	engine.Run("8081")
 }*/
 
 // 日志处理测试
@@ -212,7 +212,7 @@ type User struct {
 			log.Println(err)
 		}
 	})
-	engine.Run()
+	engine.Run("8081")
 
 }*/
 
@@ -248,7 +248,7 @@ type User struct {
 			log.Println(err)
 		}
 	})
-	engine.Run()
+	engine.Run("8081")
 }*/
 
 // 协程池测试
@@ -295,7 +295,7 @@ type User struct {
 		fmt.Printf("time: %v \n", time.Now().UnixMilli()-currentTime)
 		ctx.String(http.StatusOK, "success")
 	})
-	engine.Run()
+	engine.Run("8081")
 }*/
 
 // 认证测试
@@ -332,7 +332,7 @@ type User struct {
 		}
 		ctx.JSON(http.StatusOK, token)
 	})
-	engine.Run()
+	engine.Run("8081")
 }*/
 
 // 配置文件测试
@@ -343,12 +343,5 @@ type User struct {
 		ctx.Logger.Info("Info 日志信息")
 		ctx.String(http.StatusOK, "success")
 	})
-	engine.Run()
-}*/
-
-// RPC测试
-/*func main() {
-	engine := qiaomu.Default()
-	group := engine.Group("user")
-	engine.Run()
+	engine.Run("8081")
 }*/
