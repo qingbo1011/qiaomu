@@ -135,10 +135,8 @@ type Header struct {
 }
 
 type QueenRpcMessage struct {
-	//头
-	Header *Header
-	//消息体
-	Data any
+	Header *Header // 消息头
+	Data   any     // 消息体
 }
 
 type QueenRpcRequest struct {
@@ -217,23 +215,15 @@ func (c QueenTcpConn) Send(rsp *QueenRpcResponse) error {
 	if rsp.Code != 200 {
 		//进行默认的数据发送
 	}
-	//编码 发送出去
-	headers := make([]byte, 17)
-	//magic number
-	headers[0] = MagicNumber
-	//version
-	headers[1] = Version
+	headers := make([]byte, 17) // 发送编码
+	headers[0] = MagicNumber    // magic number
+	headers[1] = Version        // version
 	//full length
-	//消息类型
-	headers[6] = byte(msgResponse)
-	//压缩类型
-	headers[7] = byte(rsp.CompressType)
-	//序列化
-	headers[8] = byte(rsp.SerializeType)
-	//请求id
-	binary.BigEndian.PutUint64(headers[9:], uint64(rsp.RequestId))
-	//编码 先序列化 在压缩
-	se := loadSerializer(rsp.SerializeType)
+	headers[6] = byte(msgResponse)                                 // 消息类型
+	headers[7] = byte(rsp.CompressType)                            // 压缩类型
+	headers[8] = byte(rsp.SerializeType)                           // 序列化
+	binary.BigEndian.PutUint64(headers[9:], uint64(rsp.RequestId)) // 请求id
+	se := loadSerializer(rsp.SerializeType)                        // 编码 先序列化 在压缩
 	var body []byte
 	var err error
 	if rsp.SerializeType == ProtoBuff {
@@ -243,7 +233,7 @@ func (c QueenTcpConn) Send(rsp *QueenRpcResponse) error {
 		pRsp.Code = int32(rsp.Code)
 		pRsp.Msg = rsp.Msg
 		pRsp.RequestId = rsp.RequestId
-		//value, err := structpb.
+		// value, err := structpb.
 		//	log.Println(err)
 		m := make(map[string]any)
 		marshal, _ := json.Marshal(rsp.Data)
@@ -627,7 +617,7 @@ func (c *QueenTcpClient) Close() error {
 var reqId int64
 
 func (c *QueenTcpClient) Invoke(ctx context.Context, serviceName string, methodName string, args []any) (any, error) {
-	//包装 request对象 编码 发送即可
+	// 包装request对象，编码发送即可
 	req := &QueenRpcRequest{}
 	req.RequestId = atomic.AddInt64(&reqId, 1)
 	req.ServiceName = serviceName
@@ -635,20 +625,15 @@ func (c *QueenTcpClient) Invoke(ctx context.Context, serviceName string, methodN
 	req.Args = args
 
 	headers := make([]byte, 17)
-	//magic number
-	headers[0] = MagicNumber
-	//version
-	headers[1] = Version
-	//full length
-	//消息类型
-	headers[6] = byte(msgRequest)
-	//压缩类型
-	headers[7] = byte(c.option.CompressType)
-	//序列化
-	headers[8] = byte(c.option.SerializeType)
-	//请求id
-	binary.BigEndian.PutUint64(headers[9:], uint64(req.RequestId))
 
+	headers[0] = MagicNumber //magic number
+
+	headers[1] = Version //version
+	//full length
+	headers[6] = byte(msgRequest)                                  // 消息类型
+	headers[7] = byte(c.option.CompressType)                       // 压缩类型
+	headers[8] = byte(c.option.SerializeType)                      // 序列化
+	binary.BigEndian.PutUint64(headers[9:], uint64(req.RequestId)) // 请求id
 	serializer := loadSerializer(c.option.SerializeType)
 	if serializer == nil {
 		return nil, errors.New("no serializer")
@@ -716,7 +701,6 @@ func (c *QueenTcpClient) readHandle(rspChan chan *QueenRpcResponse) {
 			rspChan <- rsp
 			return
 		}
-		//根据请求
 		if msg.Header.MessageType == msgResponse {
 			if msg.Header.SerializeType == ProtoBuff {
 				rsp := msg.Data.(*Response)
@@ -735,7 +719,7 @@ func (c *QueenTcpClient) readHandle(rspChan chan *QueenRpcResponse) {
 }
 
 func (c *QueenTcpClient) decodeFrame(conn net.Conn) (*QueenRpcMessage, error) {
-	//1+1+4+1+1+1+8=17
+	// 1+1+4+1+1+1+8=17
 	headers := make([]byte, 17)
 	_, err := io.ReadFull(conn, headers)
 	if err != nil {
@@ -745,20 +729,12 @@ func (c *QueenTcpClient) decodeFrame(conn net.Conn) (*QueenRpcMessage, error) {
 	if mn != MagicNumber {
 		return nil, errors.New("magic number error")
 	}
-	//version
-	vs := headers[1]
-	//full length
-	//网络传输 大端
-	fullLength := int32(binary.BigEndian.Uint32(headers[2:6]))
-	//messageType
-	messageType := headers[6]
-	//压缩类型
-	compressType := headers[7]
-	//序列化类型
-	seType := headers[8]
-	//请求id
-	requestId := int64(binary.BigEndian.Uint32(headers[9:]))
-
+	vs := headers[1]                                           //version
+	fullLength := int32(binary.BigEndian.Uint32(headers[2:6])) // full length
+	messageType := headers[6]                                  // messageType
+	compressType := headers[7]                                 // 压缩类型
+	seType := headers[8]                                       // 序列化类型
+	requestId := int64(binary.BigEndian.Uint32(headers[9:]))   // 请求id
 	msg := &QueenRpcMessage{
 		Header: &Header{},
 	}
@@ -770,15 +746,14 @@ func (c *QueenTcpClient) decodeFrame(conn net.Conn) (*QueenRpcMessage, error) {
 	msg.Header.SerializeType = SerializerType(seType)
 	msg.Header.RequestId = requestId
 
-	//body
 	bodyLen := fullLength - 17
 	body := make([]byte, bodyLen)
 	_, err = io.ReadFull(conn, body)
 	if err != nil {
 		return nil, err
 	}
-	//编码的 先序列化 后 压缩
-	//解码的时候 先解压缩，反序列化
+	// 编码时先序列化后压缩
+	// 解码时先解压缩后反序列化
 	compress := loadCompress(CompressType(compressType))
 	if compress == nil {
 		return nil, errors.New("no compress")
