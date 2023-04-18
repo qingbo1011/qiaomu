@@ -414,7 +414,7 @@ func (s *QueenSession) UpdateParam(field string, value any) *QueenSession {
 	return s
 }
 
-// UpdateMap 工具map更新数据(key为字段名，value为更新数据)
+// UpdateMap 根据map更新数据(key为字段名，value为更新数据)
 func (s *QueenSession) UpdateMap(data map[string]any) *QueenSession {
 	for k, v := range data {
 		if s.updateParam.String() != "" {
@@ -435,7 +435,6 @@ func (s *QueenSession) Delete() (int64, error) {
 	sb.WriteString(query)
 	sb.WriteString(s.whereParam.String())
 	s.db.logger.Info(sb.String())
-
 	var stmt *sql.Stmt
 	var err error
 	if s.beginTx {
@@ -444,19 +443,28 @@ func (s *QueenSession) Delete() (int64, error) {
 		stmt, err = s.db.db.Prepare(sb.String())
 	}
 	if err != nil {
+		s.db.logger.Error(err)
 		return 0, err
 	}
 	r, err := stmt.Exec(s.whereValues...)
 	if err != nil {
+		s.db.logger.Error(err)
 		return 0, err
 	}
-	return r.RowsAffected()
+	affected, err := r.RowsAffected()
+	if err != nil {
+		s.db.logger.Error(err)
+		return 0, err
+	}
+	s.db.logger.Info(utils.ConcatenatedString([]string{"影响条数：", strconv.Itoa(int(affected))}))
+	return affected, err
 }
 
 // Select 查询数据
 func (s *QueenSession) Select(data any, fields ...string) ([]any, error) {
 	t := reflect.TypeOf(data)
 	if t.Kind() != reflect.Pointer {
+		s.db.logger.Error(errors.New("data must be pointer"))
 		return nil, errors.New("data must be pointer")
 	}
 	fieldStr := "*"
@@ -471,23 +479,23 @@ func (s *QueenSession) Select(data any, fields ...string) ([]any, error) {
 
 	stmt, err := s.db.db.Prepare(sb.String())
 	if err != nil {
+		s.db.logger.Error(err)
 		return nil, err
 	}
 	rows, err := stmt.Query(s.whereValues...)
 	if err != nil {
+		s.db.logger.Error(err)
 		return nil, err
 	}
-	//id user_name age
-	columns, err := rows.Columns()
+	columns, err := rows.Columns() // id user_name age
 	if err != nil {
+		s.db.logger.Error(err)
 		return nil, err
 	}
 	result := make([]any, 0)
 	for {
 		if rows.Next() {
-			//由于 传进来的是一个指针地址 如果每次赋值，实际都是一个 result里面 值都一样
-			//每次查询的时候 data都重新换一个地址
-			data := reflect.New(t.Elem()).Interface()
+			data := reflect.New(t.Elem()).Interface() // 每次查询的时候data都需要重新换一个地址
 			values := make([]any, len(columns))
 			fieldScan := make([]any, len(columns))
 			for i := range fieldScan {
@@ -495,6 +503,7 @@ func (s *QueenSession) Select(data any, fields ...string) ([]any, error) {
 			}
 			err := rows.Scan(fieldScan...)
 			if err != nil {
+				s.db.logger.Error(err)
 				return nil, err
 			}
 			tVar := t.Elem()
@@ -502,8 +511,8 @@ func (s *QueenSession) Select(data any, fields ...string) ([]any, error) {
 			for i := 0; i < tVar.NumField(); i++ {
 				name := tVar.Field(i).Name
 				tag := tVar.Field(i).Tag
-				//id,auto
-				sqlTag := tag.Get("msorm")
+				// id,auto
+				sqlTag := tag.Get("qorm")
 				if sqlTag == "" {
 					sqlTag = strings.ToLower(Name(name))
 				} else {
@@ -517,12 +526,10 @@ func (s *QueenSession) Select(data any, fields ...string) ([]any, error) {
 						target := values[j]
 						targetValue := reflect.ValueOf(target)
 						fieldType := tVar.Field(i).Type
-						//这样不行 类型不匹配 转换类型
-						result := reflect.ValueOf(targetValue.Interface()).Convert(fieldType)
+						result := reflect.ValueOf(targetValue.Interface()).Convert(fieldType) // 类型不匹配，需要转换类型
 						vVar.Field(i).Set(result)
 					}
 				}
-
 			}
 			result = append(result, data)
 		} else {
@@ -536,6 +543,7 @@ func (s *QueenSession) Select(data any, fields ...string) ([]any, error) {
 func (s *QueenSession) SelectOne(data any, fields ...string) error {
 	t := reflect.TypeOf(data)
 	if t.Kind() != reflect.Pointer {
+		s.db.logger.Error(errors.New("data must be pointer"))
 		return errors.New("data must be pointer")
 	}
 	fieldStr := "*"
@@ -550,15 +558,18 @@ func (s *QueenSession) SelectOne(data any, fields ...string) error {
 
 	stmt, err := s.db.db.Prepare(sb.String())
 	if err != nil {
+		s.db.logger.Error(err)
 		return err
 	}
 	rows, err := stmt.Query(s.whereValues...)
 	if err != nil {
+		s.db.logger.Error(err)
 		return err
 	}
 	// id user_name age
 	columns, err := rows.Columns()
 	if err != nil {
+		s.db.logger.Error(err)
 		return err
 	}
 	values := make([]any, len(columns))
@@ -569,6 +580,7 @@ func (s *QueenSession) SelectOne(data any, fields ...string) error {
 	if rows.Next() {
 		err := rows.Scan(fieldScan...)
 		if err != nil {
+			s.db.logger.Error(err)
 			return err
 		}
 		tVar := t.Elem()
@@ -577,7 +589,7 @@ func (s *QueenSession) SelectOne(data any, fields ...string) error {
 			name := tVar.Field(i).Name
 			tag := tVar.Field(i).Tag
 			// id,auto
-			sqlTag := tag.Get("msorm")
+			sqlTag := tag.Get("qorm")
 			if sqlTag == "" {
 				sqlTag = strings.ToLower(Name(name))
 			} else {
@@ -591,7 +603,6 @@ func (s *QueenSession) SelectOne(data any, fields ...string) error {
 					target := values[j]
 					targetValue := reflect.ValueOf(target)
 					fieldType := tVar.Field(i).Type
-					// 这样不行 类型不匹配 转换类型
 					result := reflect.ValueOf(targetValue.Interface()).Convert(fieldType)
 					vVar.Field(i).Set(result)
 				}
@@ -621,15 +632,18 @@ func (s *QueenSession) Aggregate(funcName string, field string) (int64, error) {
 
 	stmt, err := s.db.db.Prepare(sb.String())
 	if err != nil {
+		s.db.logger.Error(err)
 		return 0, err
 	}
 	row := stmt.QueryRow(s.whereValues...)
 	if row.Err() != nil {
+		s.db.logger.Error(err)
 		return 0, err
 	}
 	var result int64
 	err = row.Scan(&result)
 	if err != nil {
+		s.db.logger.Error(err)
 		return 0, err
 	}
 	return result, nil
@@ -662,7 +676,6 @@ func (s *QueenSession) Or() *QueenSession {
 
 // Like name like %s%
 func (s *QueenSession) Like(field string, value any) *QueenSession {
-
 	if s.whereParam.String() == "" {
 		s.whereParam.WriteString(" where ")
 	}
@@ -673,7 +686,7 @@ func (s *QueenSession) Like(field string, value any) *QueenSession {
 	return s
 }
 
-// LikeRight name like %s%
+// LikeRight name like s%
 func (s *QueenSession) LikeRight(field string, value any) *QueenSession {
 	if s.whereParam.String() == "" {
 		s.whereParam.WriteString(" where ")
@@ -685,7 +698,7 @@ func (s *QueenSession) LikeRight(field string, value any) *QueenSession {
 	return s
 }
 
-// LikeLeft name like %s%
+// LikeLeft name like %s
 func (s *QueenSession) LikeLeft(field string, value any) *QueenSession {
 	if s.whereParam.String() == "" {
 		s.whereParam.WriteString(" where ")
@@ -733,4 +746,112 @@ func (s *QueenSession) OrderAsc(field ...string) *QueenSession {
 	s.whereParam.WriteString(strings.Join(field, ","))
 	s.whereParam.WriteString(" asc ")
 	return s
+}
+
+// Exec 原生SQL支持
+func (s *QueenSession) Exec(query string, values ...any) (int64, error) {
+	var stmt *sql.Stmt
+	var err error
+	if s.beginTx {
+		stmt, err = s.tx.Prepare(query)
+	} else {
+		stmt, err = s.db.db.Prepare(query)
+	}
+	if err != nil {
+		return 0, err
+	}
+	r, err := stmt.Exec(values...)
+	if err != nil {
+		return 0, err
+	}
+	if strings.Contains(strings.ToLower(query), "insert") {
+		return r.LastInsertId()
+	}
+	return r.RowsAffected()
+}
+
+// QueryRow 原生SQL支持(查询单行数据并将结果映射到结构体中)
+func (s *QueenSession) QueryRow(sql string, data any, queryValues ...any) error {
+	t := reflect.TypeOf(data)
+	if t.Kind() != reflect.Pointer {
+		return errors.New("data must be pointer")
+	}
+	stmt, err := s.db.db.Prepare(sql)
+	if err != nil {
+		return err
+	}
+	rows, err := stmt.Query(queryValues...)
+	if err != nil {
+		return err
+	}
+	columns, err := rows.Columns()
+	if err != nil {
+		return err
+	}
+	values := make([]any, len(columns))
+	fieldScan := make([]any, len(columns))
+	for i := range fieldScan {
+		fieldScan[i] = &values[i]
+	}
+	if rows.Next() {
+		err := rows.Scan(fieldScan...)
+		if err != nil {
+			return err
+		}
+		tVar := t.Elem()
+		vVar := reflect.ValueOf(data).Elem()
+		for i := 0; i < tVar.NumField(); i++ {
+			name := tVar.Field(i).Name
+			tag := tVar.Field(i).Tag
+			sqlTag := tag.Get("qorm")
+			if sqlTag == "" {
+				sqlTag = strings.ToLower(Name(name))
+			} else {
+				if strings.Contains(sqlTag, ",") {
+					sqlTag = sqlTag[:strings.Index(sqlTag, ",")]
+				}
+			}
+			for j, colName := range columns {
+				if sqlTag == colName {
+					target := values[j]
+					targetValue := reflect.ValueOf(target)
+					fieldType := tVar.Field(i).Type
+					result := reflect.ValueOf(targetValue.Interface()).Convert(fieldType) // 类型不匹配，进行类型转换
+					vVar.Field(i).Set(result)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// Begin 开启事务
+func (s *QueenSession) Begin() error {
+	tx, err := s.db.db.Begin()
+	if err != nil {
+		return err
+	}
+	s.tx = tx
+	s.beginTx = true
+	return nil
+}
+
+// Commit 提交事务
+func (s *QueenSession) Commit() error {
+	err := s.tx.Commit()
+	if err != nil {
+		return err
+	}
+	s.beginTx = false
+	return nil
+}
+
+// Rollback 事务回滚
+func (s *QueenSession) Rollback() error {
+	err := s.tx.Rollback()
+	if err != nil {
+		return err
+	}
+	s.beginTx = false
+	return nil
 }
