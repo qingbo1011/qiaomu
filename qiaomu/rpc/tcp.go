@@ -186,9 +186,11 @@ func NewTcpServer(host string, port int) (*QueenTcpServer, error) {
 	m.host = host
 	return m, nil
 }
+
 func (s *QueenTcpServer) SetLimiter(limit, cap int) {
 	s.Limiter = rate.NewLimiter(rate.Limit(limit), cap)
 }
+
 func (s *QueenTcpServer) Register(name string, service interface{}) {
 	t := reflect.TypeOf(service)
 	if t.Kind() != reflect.Pointer {
