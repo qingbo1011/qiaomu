@@ -22,13 +22,14 @@ func main() {
 		goods := &model.Goods{Id: 1000, Name: "8082的商品"}
 		ctx.JSON(http.StatusOK, &model.Result{Code: 200, Msg: "success", Data: goods})
 	})
-	//
+	// grpc调用
 	server, _ := rpc.NewGrpcServer(":9111")
 	server.Register(func(g *grpc.Server) {
 		api.RegisterGoodsApiServer(g, &api.GoodsRpcService{})
 	})
 	err := server.Run()
 	log.Println(err)
+	// Nacos服务端注册
 	tcpServer, err := rpc.NewTcpServer("127.0.0.1", 9222)
 	tcpServer.SetRegister("etcd", register.Option{
 		Endpoints:   []string{"127.0.0.1:2379"},
@@ -43,6 +44,7 @@ func main() {
 	tcpServer.LimiterTimeOut = time.Second
 	tcpServer.SetLimiter(10, 100)
 	tcpServer.Run()
+	// etcd
 	cli := register.QueenEtcdRegister{}
 	cli.CreateCli(register.Option{
 		Endpoints:   []string{"127.0.0.1:2379"},

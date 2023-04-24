@@ -28,7 +28,6 @@ func CreateNacosClient() (naming_client.INamingClient, error) {
 			constant.WithContextPath("/nacos"),
 		),
 	}
-
 	// 创建服务发现客户端
 	// 创建服务发现客户端的另一种方式 (推荐)
 	namingClient, err := clients.NewNamingClient(
@@ -56,7 +55,6 @@ func RegService(namingClient naming_client.INamingClient, serviceName string, ho
 		//ClusterName: "cluster-a", // 默认值DEFAULT
 		//GroupName:   "group-a",   // 默认值DEFAULT_GROUP
 	})
-
 	return err
 }
 
@@ -124,6 +122,7 @@ func (r *QueenNacosRegister) RegisterService(serviceName string, host string, po
 	})
 	return err
 }
+
 func (r *QueenNacosRegister) GetValue(serviceName string) (string, error) {
 	instance, err := r.cli.SelectOneHealthyInstance(vo.SelectOneHealthInstanceParam{
 		ServiceName: serviceName,

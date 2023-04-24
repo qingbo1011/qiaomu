@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/qingbo1011/qiaomu"
+	"github.com/qingbo1011/qiaomu/bind"
+	qlog "github.com/qingbo1011/qiaomu/log"
 )
 
 // 路由测试
@@ -217,7 +221,7 @@ type User struct {
 }*/
 
 // 错误处理测试
-/*func main() {
+func main() {
 	engine := qiaomu.Default()
 	//engine.RegisterErrorHandler(func(err error) (int, any) {
 	//	switch e := err.(type) {
@@ -248,8 +252,8 @@ type User struct {
 			log.Println(err)
 		}
 	})
-	engine.Run("8081")
-}*/
+	engine.Run(":8081")
+}
 
 // 协程池测试
 /*func main() {

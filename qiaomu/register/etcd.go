@@ -17,6 +17,8 @@ func CreateEtcdCli(option Option) (*clientv3.Client, error) {
 	return cli, err
 }
 
+// 1
+
 func RegEtcdService(cli *clientv3.Client, serviceName string, host string, port int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
