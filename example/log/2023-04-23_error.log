@@ -1,0 +1,38 @@
+[33m [qiaomu] [0m [34m2023/04/23 - 00:32:08[0m | level= [31m ERROR [0m[31m
+ Error Cause By:  runtime error: invalid memory address or nil pointer dereference
+
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/extern.go:235
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/extern.go:235
+	D:/go_study/code/pro/qiaomu/qiaomu/recovery.go:26
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/panic.go:838
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/signal_windows.go:266
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/panic.go:219
+	D:/go_study/code/pro/qiaomu/example/main.go:239
+	D:/go_study/code/pro/qiaomu/qiaomu/log.go:115
+	D:/go_study/code/pro/qiaomu/qiaomu/recovery.go:31
+	D:/go_study/code/pro/qiaomu/qiaomu/queen.go:141
+	D:/go_study/code/pro/qiaomu/qiaomu/queen.go:217
+	D:/go_study/code/pro/qiaomu/qiaomu/queen.go:198
+	C:/Users/蜡笔小新/sdk/go1.18/src/net/http/server.go:2463
+	C:/Users/蜡笔小新/sdk/go1.18/src/net/http/server.go:2917
+	C:/Users/蜡笔小新/sdk/go1.18/src/net/http/server.go:1967
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/asm_amd64.s:1572 [0m  
+[33m [qiaomu] [0m [34m2023/04/23 - 00:32:22[0m | level= [31m ERROR [0m[31m
+ Error Cause By:  runtime error: invalid memory address or nil pointer dereference
+
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/extern.go:235
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/extern.go:235
+	D:/go_study/code/pro/qiaomu/qiaomu/recovery.go:26
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/panic.go:838
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/signal_windows.go:266
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/panic.go:219
+	D:/go_study/code/pro/qiaomu/example/main.go:239
+	D:/go_study/code/pro/qiaomu/qiaomu/log.go:115
+	D:/go_study/code/pro/qiaomu/qiaomu/recovery.go:31
+	D:/go_study/code/pro/qiaomu/qiaomu/queen.go:141
+	D:/go_study/code/pro/qiaomu/qiaomu/queen.go:217
+	D:/go_study/code/pro/qiaomu/qiaomu/queen.go:198
+	C:/Users/蜡笔小新/sdk/go1.18/src/net/http/server.go:2463
+	C:/Users/蜡笔小新/sdk/go1.18/src/net/http/server.go:2917
+	C:/Users/蜡笔小新/sdk/go1.18/src/net/http/server.go:1967
+	C:/Users/蜡笔小新/sdk/go1.18/src/runtime/asm_amd64.s:1572 [0m  
