@@ -368,3 +368,8 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 		HttpOnly: httpOnly,
 	})
 }
+
+// GetHeader 根据请求头header中的key得到value
+func (c *Context) GetHeader(key string) string {
+	return c.R.Header.Get(key)
+}

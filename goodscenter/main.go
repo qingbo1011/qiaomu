@@ -1,14 +1,12 @@
 package main
 
 import (
-	"encoding/gob"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/qingbo1011/goodscenter/api"
 	"github.com/qingbo1011/goodscenter/model"
-	"github.com/qingbo1011/goodscenter/service"
 	"github.com/qingbo1011/qiaomu"
 	"github.com/qingbo1011/qiaomu/register"
 	"github.com/qingbo1011/qiaomu/rpc"
@@ -30,26 +28,26 @@ func main() {
 	err := server.Run()
 	log.Println(err)
 	// Nacos服务端注册
-	tcpServer, err := rpc.NewTcpServer("127.0.0.1", 9222)
-	tcpServer.SetRegister("etcd", register.Option{
-		Endpoints:   []string{"127.0.0.1:2379"},
-		DialTimeout: 5 * time.Second,
-		Host:        "127.0.0.1",
-		Port:        9222,
-	})
-	log.Println(err)
-	gob.Register(&model.Result{})
-	gob.Register(&model.Goods{})
-	tcpServer.Register("goods", &service.GoodsRpcService{})
-	tcpServer.LimiterTimeOut = time.Second
-	tcpServer.SetLimiter(10, 100)
-	tcpServer.Run()
+	//tcpServer, err := rpc.NewTcpServer("127.0.0.1", 9222)
+	//tcpServer.SetRegister("etcd", register.Option{
+	//	Endpoints:   []string{"127.0.0.1:2379"},
+	//	DialTimeout: 5 * time.Second,
+	//	Host:        "127.0.0.1",
+	//	Port:        9222,
+	//})
+	//log.Println(err)
+	//gob.Register(&model.Result{})
+	//gob.Register(&model.Goods{})
+	//tcpServer.Register("goods", &service.GoodsRpcService{})
+	//tcpServer.LimiterTimeOut = time.Second
+	//tcpServer.SetLimiter(10, 100)
+	//tcpServer.Run()
 	// etcd
 	cli := register.QueenEtcdRegister{}
 	cli.CreateCli(register.Option{
 		Endpoints:   []string{"127.0.0.1:2379"},
 		DialTimeout: 5 * time.Second,
 	})
-	cli.RegisterService("goodsCenter", "127.0.0.1", 8082)
+	cli.RegisterService("goods", "127.0.0.1", 8082)
 	engine.Run(":8082")
 }

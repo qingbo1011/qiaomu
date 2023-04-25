@@ -5,10 +5,14 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"sync"
 
 	"github.com/qingbo1011/qiaomu/config"
+	"github.com/qingbo1011/qiaomu/gateway"
 	qlog "github.com/qingbo1011/qiaomu/log"
+	"github.com/qingbo1011/qiaomu/register"
 	"github.com/qingbo1011/qiaomu/render"
 	"github.com/qingbo1011/qiaomu/utils"
 )
@@ -149,17 +153,26 @@ type ErrorHandler func(err error) (int, any)
 
 type Engine struct {
 	router
-	funcMap      template.FuncMap
-	HTMLRender   render.HTMLRender
-	pool         sync.Pool
-	Logger       *qlog.Logger
-	middles      []MiddlewareFunc
-	errorHandler ErrorHandler
+	funcMap          template.FuncMap
+	HTMLRender       render.HTMLRender
+	pool             sync.Pool
+	Logger           *qlog.Logger
+	middles          []MiddlewareFunc
+	errorHandler     ErrorHandler
+	OpenGateway      bool
+	gatewayConfigs   []gateway.GWConfig
+	gatewayTreeNode  *gateway.TreeNode
+	gatewayConfigMap map[string]gateway.GWConfig
+	RegisterType     string
+	RegisterOption   register.Option
+	RegisterCli      register.QueenRegister
 }
 
 func New() *Engine {
 	engine := &Engine{
-		router: router{},
+		router:           router{},
+		gatewayTreeNode:  &gateway.TreeNode{Name: "/", Children: make([]*gateway.TreeNode, 0)},
+		gatewayConfigMap: make(map[string]gateway.GWConfig),
 	}
 	engine.pool.New = func() any {
 		return engine.allocateContext()
@@ -199,6 +212,52 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *Engine) httpRequestHandle(ctx *Context, w http.ResponseWriter, r *http.Request) {
+	// 开启网关后的处理
+	if e.OpenGateway {
+		path := r.URL.Path
+		node := e.gatewayTreeNode.Get(path)
+		if node == nil {
+			ctx.W.WriteHeader(http.StatusNotFound)
+			fmt.Fprintln(ctx.W, ctx.R.RequestURI+" not found")
+			return
+		}
+		gwConfig := e.gatewayConfigMap[node.GwName]
+		gwConfig.Header(ctx.R)
+		addr, err := e.RegisterCli.GetValue(gwConfig.ServiceName)
+		if err != nil {
+			ctx.W.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintln(ctx.W, err.Error())
+			return
+		}
+		target, err := url.Parse(fmt.Sprintf("http://%s%s", addr, path))
+		if err != nil {
+			ctx.W.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintln(ctx.W, err.Error())
+			return
+		}
+		// 网关的处理逻辑
+		director := func(req *http.Request) {
+			req.Host = target.Host
+			req.URL.Host = target.Host
+			req.URL.Path = target.Path
+			req.URL.Scheme = target.Scheme
+			if _, ok := req.Header["User-Agent"]; !ok {
+				req.Header.Set("User-Agent", "")
+			}
+		}
+		response := func(response *http.Response) error {
+			log.Println("响应修改")
+			return nil
+		}
+		handler := func(writer http.ResponseWriter, request *http.Request, err error) {
+			log.Println(err)
+			log.Println("错误处理")
+		}
+		proxy := httputil.ReverseProxy{Director: director, ModifyResponse: response, ErrorHandler: handler}
+		proxy.ServeHTTP(w, r)
+		return
+	}
+	// 不开启网关的处理
 	method := r.Method
 	for _, group := range e.router.groups {
 		routerName := utils.SubStringLast(r.URL.Path, utils.ConcatenatedString([]string{"/", group.groupName}))
@@ -231,6 +290,15 @@ func (e *Engine) SetFuncMap(funcMap template.FuncMap) {
 	e.funcMap = funcMap
 }
 
+func (e *Engine) SetGatewayConfig(configs []gateway.GWConfig) {
+	e.gatewayConfigs = configs
+	// 把这个路径存储起来，在访问的时候去匹配这里面的路由，如果匹配，就设置相应的匹配结果
+	for _, v := range e.gatewayConfigs {
+		e.gatewayTreeNode.Put(v.Path, v.Name)
+		e.gatewayConfigMap[v.Name] = v
+	}
+}
+
 // LoadTemplate 加载模板
 func (e *Engine) LoadTemplate(pattern string) {
 	t := template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
@@ -257,10 +325,27 @@ func (e *Engine) RegisterErrorHandler(handler ErrorHandler) {
 }
 
 func (e *Engine) Run(addr string) {
+	if e.RegisterType == "nacos" {
+		r := &register.QueenNacosRegister{}
+		err := r.CreateCli(e.RegisterOption)
+		if err != nil {
+			panic(err)
+		}
+		e.RegisterCli = r
+	}
+	if e.RegisterType == "etcd" {
+		r := &register.QueenEtcdRegister{}
+		err := r.CreateCli(e.RegisterOption)
+		if err != nil {
+			panic(err)
+		}
+		e.RegisterCli = r
+	}
+
 	http.Handle("/", e)
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 }
 

@@ -3,6 +3,7 @@ go 1.18
 use (
 	./example
 	./goodscenter
+	./mall-gateway
 	./ordercenter
 	./qiaomu
 )

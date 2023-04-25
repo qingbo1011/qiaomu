@@ -629,7 +629,7 @@ func (c *QueenTcpClient) Invoke(ctx context.Context, serviceName string, methodN
 	headers[0] = MagicNumber //magic number
 
 	headers[1] = Version //version
-	//full length
+	// full length
 	headers[6] = byte(msgRequest)                                  // 消息类型
 	headers[7] = byte(c.option.CompressType)                       // 压缩类型
 	headers[8] = byte(c.option.SerializeType)                      // 序列化

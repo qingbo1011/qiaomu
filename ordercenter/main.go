@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
@@ -12,6 +14,7 @@ import (
 	"github.com/qingbo1011/goodscenter/model"
 	"github.com/qingbo1011/ordercenter/service"
 	"github.com/qingbo1011/qiaomu"
+	"github.com/qingbo1011/qiaomu/register"
 	"github.com/qingbo1011/qiaomu/rpc"
 	"github.com/qingbo1011/qiaomu/tracer"
 	"github.com/uber/jaeger-client-go"
@@ -67,6 +70,25 @@ func main() {
 		goodsApiClient := api.NewGoodsApiClient(client.Conn)
 		goodsResponse, _ := goodsApiClient.Find(context.Background(), &api.GoodsRequest{})
 		ctx.JSON(http.StatusOK, goodsResponse)
+	})
+
+	group.Get("/findTcp", func(ctx *qiaomu.Context) {
+		gob.Register(&model.Result{})
+		gob.Register(&model.Goods{})
+		option := rpc.DefaultOption
+		option.SerializeType = rpc.ProtoBuff
+		option.RegisterType = "etcd"
+		option.RegisterOption = register.Option{
+			Endpoints:   []string{"127.0.0.1:2379"},
+			DialTimeout: 5 * time.Second,
+		}
+		proxy := rpc.NewQueenTcpClientProxy(option)
+		params := make([]any, 1)
+		params[0] = int64(1)
+		result, err := proxy.Call(context.Background(), "goods", "Find", params)
+		//Find(1)
+		log.Println(err)
+		ctx.JSON(http.StatusOK, result)
 	})
 	engine.Run(":8083")
 }
