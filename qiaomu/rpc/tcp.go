@@ -296,7 +296,7 @@ func (s *QueenTcpServer) readHandle(conn *QueenTcpConn) {
 			conn.conn.Close()
 		}
 	}()
-	//在这加一个限流
+	// 限流处理
 	ctx, cancel := context.WithTimeout(context.Background(), s.LimiterTimeOut)
 	defer cancel()
 	err2 := s.Limiter.WaitN(ctx, 1)
@@ -307,8 +307,7 @@ func (s *QueenTcpServer) readHandle(conn *QueenTcpConn) {
 		conn.rspChan <- rsp
 		return
 	}
-	//接收数据
-	//解码
+	// 接收数据并解码
 	msg, err := decodeFrame(conn.conn)
 	if err != nil {
 		rsp := &QueenRpcResponse{}

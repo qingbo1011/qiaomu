@@ -18,6 +18,7 @@ func CreateTracer(serviceName string, samplerConfig *config.SamplerConfig, repor
 	return tracer, closer, err
 }
 
+// CreateTracerHeader 创建携带Header的Tracer（用于分布式jaeger的应用）
 func CreateTracerHeader(serviceName string, header http.Header, samplerConfig *config.SamplerConfig, reporter *config.ReporterConfig, options ...config.Option) (opentracing.Tracer, io.Closer, opentracing.SpanContext, error) {
 	var cfg = config.Configuration{
 		ServiceName: serviceName,
