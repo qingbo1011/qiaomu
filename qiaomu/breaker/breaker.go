@@ -154,7 +154,7 @@ func (cb *CircuitBreaker) Execute(req func() (any, error)) (any, error) {
 }
 
 func (cb *CircuitBreaker) beforeRequest() (error, uint64) {
-	// 判断一下当前的状态在做处置 断路器如果是打开状态 直接返回err
+	// 判断一下当前的状态在做处置,断路器如果是打开状态直接返回err
 	now := time.Now()
 	state, generation := cb.currentState(now)
 	if state == StateOpen {
